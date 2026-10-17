@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Create a poll - Quick Vote</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="create">
+  <main class="container">
+    <a class="brand" href="/">Quick Vote</a>
+    <h1>Create a poll</h1>
+
+    <form id="create-form" class="card" novalidate>
+      <div class="field">
+        <label for="title">Poll title</label>
+        <input id="title" type="text" maxlength="120" autocomplete="off" placeholder="What should we have for lunch?" required>
+      </div>
+
+      <div class="field">
+        <span class="label" id="options-label">Options</span>
+        <ul id="options" class="option-list" aria-labelledby="options-label"></ul>
+        <button type="button" id="add-option" class="btn btn-secondary">+ Add option</button>
+        <p class="muted small" id="options-hint">Between 2 and 20 options.</p>
+      </div>
+
+      <fieldset class="field">
+        <legend class="label">Voting type</legend>
+        <div class="segmented">
+          <label><input type="radio" name="mode" value="single" checked><span>Single choice</span></label>
+          <label><input type="radio" name="mode" value="multi"><span>Multiple choice</span></label>
+        </div>
+      </fieldset>
+
+      <div class="toggle-row" id="anon-row">
+        <div class="toggle-text">
+          <span class="toggle-title" id="anon-title">Anonymous voting</span>
+          <span class="muted small" id="anon-help">You'll still approve people by name, but nobody sees who voted for what.</span>
+        </div>
+        <button type="button" id="anon-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="anon-title" aria-describedby="anon-help"></button>
+      </div>
+
+      <p id="create-error" class="error" role="alert" hidden></p>
+      <button type="submit" id="create-btn" class="btn btn-primary btn-block">Create poll</button>
+      <p class="muted small" id="keep-open-note">Keep this page open while people vote. Polls are deleted if the server restarts or nobody has a poll open for 15 minutes.</p>
+    </form>
+  </main>
+  <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
+  <script src="/js/common.js"></script>
+  <script src="/js/create.js"></script>
+</body>
+</html>

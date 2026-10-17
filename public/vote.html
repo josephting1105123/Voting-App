@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Vote - Quick Vote</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="vote">
+  <div id="conn" class="conn" role="status" hidden>Connection lost. Reconnecting&hellip;</div>
+  <main class="container">
+    <a class="brand" href="/">Quick Vote</a>
+    <p id="sr-status" class="sr-only" role="status"></p>
+    <div id="view"><div class="card center">Connecting&hellip;</div></div>
+  </main>
+  <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/vote.js"></script>
+</body>
+</html>

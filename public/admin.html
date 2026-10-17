@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Admin - Quick Vote</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="admin">
+  <div id="conn" class="conn" role="status" hidden>Connection lost. Reconnecting&hellip;</div>
+  <main class="container">
+    <div id="loading" class="card center" role="status">Loading&hellip;</div>
+
+    <div id="not-found" class="card center" hidden>
+      <h1>Poll not found or expired</h1>
+      <p class="muted">Polls are deleted 24 hours after they're created, or when the server restarts.</p>
+      <a class="btn btn-primary" href="/">Back to home</a>
+    </div>
+
+    <div id="admin" hidden>
+      <header class="page-head">
+        <a class="brand" href="/">Quick Vote</a>
+        <h1 id="poll-title"></h1>
+        <div class="badges">
+          <span class="badge badge-closed" id="closed-badge" hidden>Closed</span>
+          <span class="badge" id="mode-badge"></span>
+          <span class="badge" id="anon-badge"></span>
+        </div>
+      </header>
+
+      <section class="card pin-card" aria-labelledby="pin-label">
+        <p class="label" id="pin-label">Poll PIN</p>
+        <p class="pin" id="pin"></p>
+        <div class="copy-row">
+          <input id="share-link" class="input" type="text" readonly aria-label="Share link">
+          <button type="button" id="copy-share" class="btn btn-secondary">Copy</button>
+        </div>
+        <div class="notice notice-warn">
+          <p>This page's link is your admin key &mdash; keep it private</p>
+          <button type="button" id="copy-admin" class="btn btn-secondary btn-sm">Copy admin link</button>
+        </div>
+        <p class="muted small" id="keep-open-note">Keep this page open while people vote. Polls are deleted if the server restarts or nobody has a poll open for 15 minutes.</p>
+      </section>
+
+      <section class="card" aria-label="Live results setting">
+        <div class="toggle-row" id="live-row">
+          <div class="toggle-text">
+            <span class="toggle-title" id="live-label">Live</span>
+            <span class="muted small" id="live-help">Voters see results after they vote</span>
+          </div>
+          <button type="button" id="live-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="live-label" aria-describedby="live-help"></button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="results-heading">
+        <h2 id="results-heading">Results</h2>
+        <p class="muted" id="total"></p>
+        <div id="results"></div>
+        <p class="muted small" id="multi-note" hidden>Voters can pick more than one option. Each percentage is the share of voters who picked that option, so they can add up to more than 100%.</p>
+      </section>
+
+      <section class="card" aria-labelledby="pending-heading">
+        <div class="list-item" id="pending-head">
+          <h2 id="pending-heading">Pending (0)</h2>
+          <button type="button" id="approve-all" class="btn btn-primary btn-sm" hidden>Approve all</button>
+        </div>
+        <p class="muted" id="pending-empty">No one waiting</p>
+        <ul class="list" id="pending-list"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="voters-heading">
+        <h2 id="voters-heading">Voters (0)</h2>
+        <p class="muted" id="voters-empty">No approved voters yet</p>
+        <ul class="list" id="voters-list"></ul>
+        <p class="muted small" id="rejected-note" hidden></p>
+      </section>
+
+      <section class="card">
+        <p class="muted" id="closed-note" hidden>This poll is closed. No one can join or vote.</p>
+        <button type="button" id="close-btn" class="btn btn-danger btn-block">Close poll</button>
+      </section>
+    </div>
+  </main>
+  <div id="admin-error" class="toast" role="alert" hidden>
+    <span id="admin-error-text" class="toast-text"></span>
+    <button type="button" id="admin-error-close" class="toast-close" aria-label="Dismiss message">&times;</button>
+  </div>
+  <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

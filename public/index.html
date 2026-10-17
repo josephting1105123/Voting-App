@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Quick Vote</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-page="home">
+  <main class="container">
+    <header class="app-header">
+      <h1>Quick Vote</h1>
+      <p class="muted">Live polls in seconds. No accounts, no app to install.</p>
+    </header>
+
+    <section class="card" aria-labelledby="create-heading">
+      <h2 id="create-heading">Create a poll</h2>
+      <p class="muted">Ask a question, share the PIN, and watch the votes come in.</p>
+      <a class="btn btn-primary btn-block" href="/create.html">Create a poll</a>
+    </section>
+
+    <section class="card" aria-labelledby="join-heading">
+      <h2 id="join-heading">Join a poll</h2>
+      <form id="join-form" novalidate>
+        <div class="field">
+          <label for="pin">Poll PIN</label>
+          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" placeholder="6 digits" required>
+        </div>
+        <div class="field">
+          <label for="name">Your name</label>
+          <input id="name" name="name" type="text" maxlength="40" autocomplete="nickname" placeholder="So the host knows who you are" required>
+        </div>
+        <p id="join-error" class="error" role="alert" hidden></p>
+        <button class="btn btn-primary btn-block" type="submit">Join</button>
+      </form>
+    </section>
+
+    <section class="card" id="my-polls" aria-labelledby="my-polls-heading" hidden>
+      <h2 id="my-polls-heading">Your polls</h2>
+      <ul class="list" id="my-polls-list"></ul>
+    </section>
+  </main>
+  <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
+  <script src="/js/common.js"></script>
+</body>
+</html>

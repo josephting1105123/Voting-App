@@ -1,0 +1,375 @@
+/* Quick Vote shared helpers. Exposes window.QV.
+ * Rule for every page: user-supplied text only ever reaches the DOM through textContent / text nodes.
+ * There is no innerHTML anywhere in this app. */
+(function () {
+  'use strict';
+
+  var ADMIN_POLLS_KEY = 'qv:adminPolls';
+  var VOTER_KEY_PREFIX = 'qv:voter:';
+  var DAY_MS = 24 * 60 * 60 * 1000;
+  var MAX_SAVED_POLLS = 30;
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function appendChildren(parent, children) {
+    for (var i = 0; i < children.length; i++) {
+      var child = children[i];
+      if (child === null || child === undefined || child === false || child === true) continue;
+      if (Array.isArray(child)) appendChildren(parent, child);
+      else if (child instanceof Node) parent.appendChild(child);
+      else parent.appendChild(document.createTextNode(String(child)));
+    }
+  }
+
+  /* el('button', { class: 'btn', type: 'button', onclick: fn }, 'Label', childNode)
+   * props: class, text, on<event> handlers, value/checked/disabled/hidden (as properties),
+   * everything else becomes an attribute (pass aria-* values as strings, e.g. 'false').
+   * Children: strings become text nodes, arrays are flattened, null/false are skipped. */
+  function el(tag, props) {
+    var node = document.createElement(tag);
+    if (props) {
+      Object.keys(props).forEach(function (key) {
+        var val = props[key];
+        if (val === undefined || val === null || val === false) return;
+        if (key === 'class') node.className = val;
+        else if (key === 'text') node.textContent = val;
+        else if (key.indexOf('on') === 0 && typeof val === 'function') node.addEventListener(key.slice(2).toLowerCase(), val);
+        else if (key === 'value' || key === 'checked' || key === 'disabled' || key === 'hidden') node[key] = val;
+        else node.setAttribute(key, val === true ? '' : String(val));
+      });
+    }
+    appendChildren(node, Array.prototype.slice.call(arguments, 2));
+    return node;
+  }
+
+  /* ---- keyed list reconciliation: updates rows in place so buttons don't vanish under a tap ---- */
+
+  function reconcile(container, items, key, create, update) {
+    var prev = container._qvKeyed || new Map();
+    var next = new Map();
+    var cursor = container.firstChild;
+    items.forEach(function (item) {
+      var k = key(item);
+      var node = prev.get(k);
+      if (node) prev.delete(k);
+      else node = create(item);
+      update(node, item);
+      next.set(k, node);
+      if (node === cursor) cursor = cursor.nextSibling;
+      else container.insertBefore(node, cursor);
+    });
+    prev.forEach(function (node) {
+      if (node.parentNode === container) container.removeChild(node);
+    });
+    container._qvKeyed = next;
+  }
+
+  /* ---- results bars ----
+   * options: [{ id, text }]   results: { options: [{ id, count }], totalVoted }
+   * opts.mine: array of option ids to mark with a check.
+   * Re-calling with the same options updates the bars in place, so widths animate. */
+
+  function renderResults(container, options, results, opts) {
+    var mine = new Set((opts && opts.mine) || []);
+    var counts = new Map();
+    (results.options || []).forEach(function (o) {
+      counts.set(o.id, o.count);
+    });
+    var total = results.totalVoted || 0;
+
+    var sig = options
+      .map(function (o) {
+        return o.id + ':' + o.text;
+      })
+      .join('\u0000');
+
+    var rows = container._qvRows;
+    if (!rows || container._qvSig !== sig) {
+      clear(container);
+      var list = el('ul', { class: 'results' });
+      rows = new Map();
+      options.forEach(function (o) {
+        var text = el('span', { class: 'result-text', text: o.text });
+        var num = el('span', { class: 'result-num' });
+        var fill = el('div', { class: 'bar-fill' });
+        var row = el('li', { class: 'result' }, el('div', { class: 'result-head' }, text, num), el('div', { class: 'bar', 'aria-hidden': 'true' }, fill));
+        rows.set(o.id, { row: row, num: num, fill: fill });
+        list.appendChild(row);
+      });
+      container.appendChild(list);
+      container._qvRows = rows;
+      container._qvSig = sig;
+      void list.offsetWidth; // flush so the first width change animates from 0
+    }
+
+    options.forEach(function (o) {
+      var r = rows.get(o.id);
+      var count = counts.get(o.id) || 0;
+      var pct = total > 0 ? Math.round((count * 100) / total) : 0;
+      r.num.textContent = total > 0 ? count + ' · ' + pct + '%' : String(count);
+      r.fill.style.width = pct + '%';
+      r.row.classList.toggle('mine', mine.has(o.id));
+    });
+  }
+
+  function clearResults(container) {
+    clear(container);
+    container._qvRows = null;
+    container._qvSig = null;
+  }
+
+  /* ---- clipboard ---- */
+
+  function legacyCopy(text) {
+    var previous = document.activeElement;
+    var ta = el('textarea', { class: 'sr-copy', readonly: '', 'aria-hidden': 'true', tabindex: '-1' });
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      ta.setSelectionRange(0, text.length);
+    } catch (e) {
+      /* some browsers throw on hidden elements; select() above is enough */
+    }
+    var ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    if (previous && typeof previous.focus === 'function') previous.focus();
+    return ok;
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(
+        function () {
+          return true;
+        },
+        function () {
+          return legacyCopy(text);
+        }
+      );
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  /* Briefly swap a button's label, e.g. "Copied". */
+  function flash(button, text, ms) {
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    button.textContent = text;
+    clearTimeout(button._qvTimer);
+    button._qvTimer = setTimeout(function () {
+      button.textContent = button.dataset.label;
+    }, ms || 1500);
+  }
+
+  /* ---- localStorage (can throw in private mode, so everything is wrapped) ---- */
+
+  function readJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* Saved admin polls: [{ pin, title, adminToken, createdAt }], newest first, expired ones dropped. */
+  function loadAdminPolls() {
+    var all = readJSON(ADMIN_POLLS_KEY, []);
+    if (!Array.isArray(all)) return [];
+    var cutoff = Date.now() - DAY_MS;
+    var kept = all.filter(function (p) {
+      return p && typeof p.adminToken === 'string' && typeof p.pin === 'string' && typeof p.title === 'string' && Number(p.createdAt) > cutoff;
+    });
+    if (kept.length !== all.length) writeJSON(ADMIN_POLLS_KEY, kept);
+    return kept;
+  }
+
+  function saveAdminPoll(entry) {
+    var list = loadAdminPolls().filter(function (p) {
+      return p.adminToken !== entry.adminToken;
+    });
+    list.unshift(entry);
+    writeJSON(ADMIN_POLLS_KEY, list.slice(0, MAX_SAVED_POLLS));
+  }
+
+  function forgetAdminPoll(adminToken) {
+    writeJSON(
+      ADMIN_POLLS_KEY,
+      loadAdminPolls().filter(function (p) {
+        return p.adminToken !== adminToken;
+      })
+    );
+  }
+
+  function getVoterToken(pin) {
+    try {
+      return localStorage.getItem(VOTER_KEY_PREFIX + pin) || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setVoterToken(pin, token) {
+    try {
+      localStorage.setItem(VOTER_KEY_PREFIX + pin, token);
+    } catch (e) {
+      /* private mode: the vote still works, resume after reload won't */
+    }
+  }
+
+  function clearVoterToken(pin) {
+    try {
+      localStorage.removeItem(VOTER_KEY_PREFIX + pin);
+    } catch (e) {
+      /* nothing to clear */
+    }
+  }
+
+  /* ---- sockets ---- */
+
+  /* Promise wrapper around an emit with an ack. Never rejects: resolves { ok:false, error } on timeout. */
+  function emitAck(socket, event, payload, timeoutMs) {
+    return new Promise(function (resolve) {
+      socket.timeout(timeoutMs || 8000).emit(event, payload, function (err, res) {
+        // transport: true means the request may or may not have reached the server (as opposed to being refused).
+        if (err) resolve({ ok: false, transport: true, error: 'No response from the server. Check your connection.' });
+        else resolve(res && typeof res === 'object' ? res : { ok: false, transport: true, error: 'Unexpected response from the server.' });
+      });
+    });
+  }
+
+  /* Render's free tier sleeps after ~15 minutes without traffic, which would wipe every poll.
+   * An open admin or voter page pings /healthz every 4 minutes to keep the server awake. */
+  function keepAlive() {
+    setInterval(function () {
+      try {
+        fetch('/healthz', { cache: 'no-store' }).catch(function () {});
+      } catch (e) {
+        /* ignore */
+      }
+    }, 4 * 60 * 1000);
+  }
+
+  function watchConnection(socket, banner) {
+    socket.on('connect', function () {
+      banner.hidden = true;
+    });
+    socket.on('disconnect', function () {
+      banner.hidden = false;
+    });
+    socket.on('connect_error', function () {
+      banner.hidden = false;
+    });
+  }
+
+  /* ---- home page (index.html has no script of its own) ---- */
+
+  function initHome() {
+    var form = $('join-form');
+    if (!form) return;
+    var pinInput = $('pin');
+    var nameInput = $('name');
+    var errorBox = $('join-error');
+
+    function showError(message, field) {
+      errorBox.textContent = message;
+      errorBox.hidden = false;
+      if (field) field.focus();
+    }
+
+    var prefill = new URLSearchParams(location.search).get('pin');
+    if (prefill && /^\d{1,6}$/.test(prefill)) {
+      pinInput.value = prefill;
+      nameInput.focus();
+    }
+
+    pinInput.addEventListener('input', function () {
+      var digits = pinInput.value.replace(/\D/g, '').slice(0, 6);
+      if (digits !== pinInput.value) pinInput.value = digits;
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      errorBox.hidden = true;
+      var pin = pinInput.value.trim();
+      var name = nameInput.value.trim();
+      if (!/^\d{6}$/.test(pin)) return showError('Enter the 6-digit PIN.', pinInput);
+      if (!name) return showError('Enter your name.', nameInput);
+      if (Array.from(name).length > 40) return showError('Names can be up to 40 characters.', nameInput);
+      location.href = '/vote.html?pin=' + encodeURIComponent(pin) + '&name=' + encodeURIComponent(name);
+    });
+
+    var polls = loadAdminPolls();
+    if (polls.length > 0) {
+      var list = $('my-polls-list');
+      polls.forEach(function (p) {
+        list.appendChild(
+          el(
+            'li',
+            { class: 'list-item' },
+            el('a', { class: 'poll-link', href: '/admin.html#' + encodeURIComponent(p.adminToken) }, el('span', { class: 'poll-link-title', text: p.title }), el('span', { class: 'poll-link-pin', text: 'PIN ' + p.pin }))
+          )
+        );
+      });
+      $('my-polls').hidden = false;
+    }
+  }
+
+  window.QV = {
+    $: $,
+    el: el,
+    clear: clear,
+    reconcile: reconcile,
+    renderResults: renderResults,
+    clearResults: clearResults,
+    copyToClipboard: copyToClipboard,
+    flash: flash,
+    loadAdminPolls: loadAdminPolls,
+    saveAdminPoll: saveAdminPoll,
+    forgetAdminPoll: forgetAdminPoll,
+    getVoterToken: getVoterToken,
+    setVoterToken: setVoterToken,
+    clearVoterToken: clearVoterToken,
+    emitAck: emitAck,
+    keepAlive: keepAlive,
+    watchConnection: watchConnection,
+  };
+
+  // Installable PWA: failures (private mode, unsupported browser) must never break the page.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      try {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      } catch (e) {
+        /* ignore */
+      }
+    });
+  }
+
+  function boot() {
+    if (document.body && document.body.getAttribute('data-page') === 'home') initHome();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
