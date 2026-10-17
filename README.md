@@ -53,10 +53,10 @@ Per poll: 500 voters, counting people waiting for approval and approved voters t
 
 ### `TRUST_PROXY_HOPS`
 
-The client IP comes from `X-Forwarded-For`, taking the entry that many hops from the **right** (the end the proxy writes to, which a client can't forge). The default is `1`: one proxy in front, as on Render.
+The client IP comes from `X-Forwarded-For`, taking the entry that many hops from the **right** (the end the proxy writes to, which a client can't forge). The default is `1`: one proxy in front.
 
+- **Render: set `TRUST_PROXY_HOPS=3`.** Render's header arrives as `client, cloudflare-edge, render-load-balancer` (checked 2026-10-17). With the default of 1, every user is counted as Render's load balancer and they all share one rate-limit bucket. `render.yaml` sets it; a service created by hand in the dashboard needs it added under Environment.
 - Behind one proxy: leave it unset.
-- Behind two (for example a CDN in front of Render's load balancer): set `TRUST_PROXY_HOPS=2`.
 - Running with no proxy at all (local, or a bare VM): set `TRUST_PROXY_HOPS=0`. Otherwise a client can send its own `X-Forwarded-For` and pick which IP it is counted as.
 
 If the header is missing or has fewer entries than the hop count, the connection's own address is used. Check the `[ip]` log line after deploying to confirm the setting.

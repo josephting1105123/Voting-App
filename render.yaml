@@ -6,3 +6,7 @@ services:
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /healthz
+    envVars:
+      # Render's X-Forwarded-For is "client, cloudflare-edge, render-lb" (seen in the [ip] log line, 2026-10-17).
+      - key: TRUST_PROXY_HOPS
+        value: "3"
