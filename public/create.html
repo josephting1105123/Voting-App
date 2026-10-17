@@ -4,44 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark light">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Create a poll - Quick Vote</title>
+  <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-page="create">
+  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="/"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Quick Vote</a><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></header>
   <main class="container">
-    <a class="brand" href="/">Quick Vote</a>
-    <h1>Create a poll</h1>
+    <h1>New poll</h1>
 
     <form id="create-form" class="card" novalidate>
       <div class="field">
-        <label for="title">Poll title</label>
-        <input id="title" type="text" maxlength="120" autocomplete="off" placeholder="What should we have for lunch?" required>
+        <label for="title">Question</label>
+        <input id="title" type="text" maxlength="120" autocomplete="off" placeholder="Where should we eat on Friday?" required>
       </div>
 
       <div class="field">
         <span class="label" id="options-label">Options</span>
         <ul id="options" class="option-list" aria-labelledby="options-label"></ul>
-        <button type="button" id="add-option" class="btn btn-secondary">+ Add option</button>
-        <p class="muted small" id="options-hint">Between 2 and 20 options.</p>
+        <button type="button" id="add-option" class="btn btn-secondary">Add option</button>
+        <p class="muted small" id="options-hint">2 to 20 options.</p>
       </div>
 
       <fieldset class="field">
-        <legend class="label">Voting type</legend>
+        <legend class="label">Voters can pick</legend>
         <div class="segmented">
-          <label><input type="radio" name="mode" value="single" checked><span>Single choice</span></label>
-          <label><input type="radio" name="mode" value="multi"><span>Multiple choice</span></label>
+          <label><input type="radio" name="mode" value="single" checked><span>One option</span></label>
+          <label><input type="radio" name="mode" value="multi"><span>More than one</span></label>
         </div>
       </fieldset>
 
       <div class="toggle-row" id="anon-row">
         <div class="toggle-text">
-          <span class="toggle-title" id="anon-title">Anonymous voting</span>
-          <span class="muted small" id="anon-help">You'll still approve people by name, but nobody sees who voted for what.</span>
+          <span class="toggle-title" id="anon-title">Anonymous</span>
+          <span class="muted small" id="anon-help">You still approve people by name, but nobody sees who picked what, you included.</span>
         </div>
         <button type="button" id="anon-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="anon-title" aria-describedby="anon-help"></button>
       </div>

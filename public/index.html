@@ -4,41 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark light">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Quick Vote</title>
+  <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-page="home">
+  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="/"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Quick Vote</a><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></header>
   <main class="container">
-    <header class="app-header">
-      <h1>Quick Vote</h1>
-      <p class="muted">Live polls in seconds. No accounts, no app to install.</p>
-    </header>
-
-    <section class="card" aria-labelledby="create-heading">
-      <h2 id="create-heading">Create a poll</h2>
-      <p class="muted">Ask a question, share the PIN, and watch the votes come in.</p>
-      <a class="btn btn-primary btn-block" href="/create.html">Create a poll</a>
-    </section>
+    <section class="hero"><h1>Put it to a vote.</h1><p class="lead">Make a poll, read out the 6-digit PIN, and everyone votes from their phone. No accounts, nothing to install.</p></section>
 
     <section class="card" aria-labelledby="join-heading">
       <h2 id="join-heading">Join a poll</h2>
       <form id="join-form" novalidate>
         <div class="field">
           <label for="pin">Poll PIN</label>
-          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" placeholder="6 digits" required>
+          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" placeholder="123456" required>
         </div>
         <div class="field">
           <label for="name">Your name</label>
-          <input id="name" name="name" type="text" maxlength="40" autocomplete="nickname" placeholder="So the host knows who you are" required>
+          <input id="name" name="name" type="text" maxlength="40" autocomplete="nickname" placeholder="The host sees this" required>
         </div>
         <p id="join-error" class="error" role="alert" hidden></p>
         <button class="btn btn-primary btn-block" type="submit">Join</button>
       </form>
+    </section>
+
+    <section class="card" aria-labelledby="create-heading">
+      <h2 id="create-heading">Running the vote?</h2>
+      <p class="muted">You decide who gets in and when people see the results.</p>
+      <a class="btn btn-secondary btn-block" href="/create.html">Create a poll</a>
     </section>
 
     <section class="card" id="my-polls" aria-labelledby="my-polls-heading" hidden>

@@ -5,15 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark light">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Admin - Quick Vote</title>
+  <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-page="admin">
+  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="/"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Quick Vote</a><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></header>
   <div id="conn" class="conn" role="status" hidden>Connection lost. Reconnecting&hellip;</div>
   <main class="container">
     <div id="loading" class="card center" role="status">Loading&hellip;</div>
@@ -26,7 +29,6 @@
 
     <div id="admin" hidden>
       <header class="page-head">
-        <a class="brand" href="/">Quick Vote</a>
         <h1 id="poll-title"></h1>
         <div class="badges">
           <span class="badge badge-closed" id="closed-badge" hidden>Closed</span>
@@ -43,7 +45,7 @@
           <button type="button" id="copy-share" class="btn btn-secondary">Copy</button>
         </div>
         <div class="notice notice-warn">
-          <p>This page's link is your admin key &mdash; keep it private</p>
+          <p>Anyone with this page's link can run the poll. Don't share it.</p>
           <button type="button" id="copy-admin" class="btn btn-secondary btn-sm">Copy admin link</button>
         </div>
         <p class="muted small" id="keep-open-note">Keep this page open while people vote. Polls are deleted if the server restarts or nobody has a poll open for 15 minutes.</p>
@@ -53,7 +55,7 @@
         <div class="toggle-row" id="live-row">
           <div class="toggle-text">
             <span class="toggle-title" id="live-label">Live</span>
-            <span class="muted small" id="live-help">Voters see results after they vote</span>
+            <span class="muted small" id="live-help">When on, voters see the results after they vote</span>
           </div>
           <button type="button" id="live-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="live-label" aria-describedby="live-help"></button>
         </div>

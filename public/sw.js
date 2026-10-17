@@ -15,6 +15,7 @@ const SHELL = [
   '/admin.html',
   '/vote.html',
   '/style.css',
+  '/js/theme.js',
   '/js/common.js',
   '/js/create.js',
   '/js/admin.js',
