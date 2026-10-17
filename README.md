@@ -27,6 +27,27 @@ npm test
 2. In Render, create a new Blueprint (or Web Service) from the repo. `render.yaml` is picked up automatically: free plan, `npm ci`, `npm start`, health check on `/healthz`.
 3. After the first deploy, open the service logs and find the line `[ip] xff=... chosen=...` (printed once, on the first request). `chosen` should be your own public IP. If it is a Render or CDN address instead, raise `TRUST_PROXY_HOPS` (see below) until it matches.
 
+## Android app
+
+`android/` is a thin [Capacitor](https://capacitorjs.com) shell around the live site. The app opens `https://vote.entropicsoftwarelabs.com` (`server.url` in `capacitor.config.json`), so a web deploy updates the app for everyone with no new APK. If the page can't load, the app falls back to the bundled `public/offline.html`, which has a "Try again" button. Links to other sites open in the system browser. Capacitor is a dev dependency only; Render never installs it.
+
+Build a debug APK (Windows, Git Bash):
+
+```
+npm install
+npx cap sync android
+cd android
+JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+```
+
+Gradle needs JDK 17 to 21, so point `JAVA_HOME` at Android Studio's bundled JBR (JDK 21) rather than a newer system JDK. Create `android/local.properties` with `sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk` (it is gitignored), or set `ANDROID_HOME`.
+
+The APK lands in `android/app/build/outputs/apk/debug/app-debug.apk`. Run `npx cap sync android` again after changing `capacitor.config.json`.
+
+The app id is `app.quickvote.android` (`appId` in `capacitor.config.json`; also `applicationId` and `namespace` in `android/app/build.gradle`, and the Java package). Change it before the first Play upload, because Play locks it afterwards.
+
+A Play Store release needs a signed release build (`assembleRelease` or `bundleRelease`) and an upload keystore. No keystore exists yet and none is checked in; keep it and its passwords out of git.
+
 ## Limits to know about
 
 **Data is in memory only.** A restart wipes every poll. Polls also expire 24 hours after creation, and the server holds at most 2000 polls and 50,000 voters at a time.

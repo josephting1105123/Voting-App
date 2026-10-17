@@ -10,13 +10,18 @@
   },
   "scripts": {
     "start": "node --max-old-space-size=400 server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "cap:sync": "cap sync android",
+    "android:debug": "cap sync android && cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/core": "8.5.3",
     "socket.io-client": "^4.8.1"
   }
 }

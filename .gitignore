@@ -1,3 +1,18 @@
 node_modules/
 .env
 *.log
+
+# Android (Capacitor)
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/.idea/
+android/*.iml
+android/captures/
+android/.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks

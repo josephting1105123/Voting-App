@@ -1,0 +1,19 @@
+{
+  "appId": "app.quickvote.android",
+  "appName": "Quick Vote",
+  "webDir": "public",
+  "server": {
+    "url": "https://vote.entropicsoftwarelabs.com",
+    "errorPath": "offline.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#4f46e5"
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK"
+    }
+  }
+}
