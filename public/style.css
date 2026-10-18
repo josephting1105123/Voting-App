@@ -618,7 +618,7 @@ input::placeholder {
 /* Option rows on the create page */
 
 .option-list {
-  margin: 0 0 10px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -636,6 +636,35 @@ input::placeholder {
 
 .option-row .btn {
   flex: none;
+}
+
+.add-option {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0 0 4px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.add-option:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.add-option:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.add-option[hidden] {
+  display: none;
 }
 
 /* Segmented control (single / multiple) */
@@ -675,6 +704,7 @@ input::placeholder {
   color: var(--text-2);
   font-weight: 600;
   text-align: center;
+  white-space: nowrap;
 }
 
 .segmented input:checked + span {
@@ -685,6 +715,13 @@ input::placeholder {
 .segmented input:focus-visible + span {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
+}
+
+@media (max-width: 400px) {
+  .segmented span {
+    font-size: 0.9375rem;
+    padding: 0 4px;
+  }
 }
 
 /* Switch (toggle) */

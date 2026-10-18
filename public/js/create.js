@@ -38,7 +38,7 @@
       remove.setAttribute('aria-label', 'Remove option ' + n);
       remove.disabled = all.length <= MIN_OPTIONS;
     });
-    addBtn.disabled = all.length >= MAX_OPTIONS;
+    addBtn.hidden = all.length >= MAX_OPTIONS;
   }
 
   function addOption(focus) {
