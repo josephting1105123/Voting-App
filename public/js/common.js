@@ -367,6 +367,141 @@
     });
   }
 
+  // Two-option sliding toggle (markup: .slider > .slider-thumb + two .slider-opt buttons).
+  function bindSlider(root, onPick) {
+    var opts = root.querySelectorAll('.slider-opt');
+    var thumb = root.querySelector('.slider-thumb');
+    if (opts.length !== 2 || !thumb) return null;
+    var down = false;
+    var dragging = false;
+    var startX = 0;
+    var swallowClick = false;
+
+    function setIndex(i) {
+      root.dataset.index = String(i);
+      for (var k = 0; k < opts.length; k++) {
+        opts[k].setAttribute('aria-checked', String(k === i));
+        opts[k].setAttribute('tabindex', k === i ? '0' : '-1');
+      }
+    }
+
+    function posFor(clientX) {
+      var rect = root.getBoundingClientRect();
+      var thumbW = thumb.offsetWidth;
+      var span = rect.width - 8 - thumbW;
+      if (span <= 0) return 0;
+      var p = (clientX - rect.left - 4 - thumbW / 2) / span;
+      return p < 0 ? 0 : p > 1 ? 1 : p;
+    }
+
+    function endDrag() {
+      down = false;
+      dragging = false;
+      root.classList.remove('is-dragging');
+      root.style.removeProperty('--pos');
+    }
+
+    Array.prototype.forEach.call(opts, function (opt, k) {
+      opt.addEventListener('click', function () {
+        if (swallowClick) {
+          swallowClick = false;
+          return;
+        }
+        onPick(k);
+      });
+    });
+
+    root.addEventListener('keydown', function (e) {
+      var k = -1;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') k = 0;
+      else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') k = 1;
+      if (k < 0) return;
+      e.preventDefault();
+      onPick(k);
+      opts[k].focus();
+    });
+
+    root.addEventListener('pointerdown', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      if (e.isPrimary === false) return;
+      down = true;
+      dragging = false;
+      startX = e.clientX;
+    });
+
+    root.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      if (!dragging) {
+        if (Math.abs(e.clientX - startX) <= 4) return;
+        dragging = true;
+        root.classList.add('is-dragging');
+        try {
+          root.setPointerCapture(e.pointerId);
+        } catch (err) {
+          /* ignore */
+        }
+      }
+      root.style.setProperty('--pos', String(posFor(e.clientX)));
+    });
+
+    root.addEventListener('pointerup', function (e) {
+      if (!down) return;
+      var wasDragging = dragging;
+      var p = posFor(e.clientX);
+      endDrag();
+      if (wasDragging) {
+        swallowClick = true;
+        setTimeout(function () {
+          swallowClick = false;
+        }, 0);
+        onPick(p > 0.5 ? 1 : 0);
+      }
+    });
+
+    root.addEventListener('pointercancel', endDrag);
+
+    return { setIndex: setIndex };
+  }
+
+  function initSliders() {
+    var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var ready = [];
+
+    var roleRoot = document.getElementById('role-slider');
+    if (roleRoot) {
+      var initial = Number(roleRoot.dataset.index) || 0;
+      var cur = initial;
+      var roleOpts = roleRoot.querySelectorAll('.slider-opt');
+      var roleSlider = bindSlider(roleRoot, function (i) {
+        if (i === cur) return;
+        cur = i;
+        roleSlider.setIndex(i);
+        var href = roleOpts[i].dataset.href;
+        if (!href) return;
+        setTimeout(function () {
+          location.href = href;
+        }, reduced ? 0 : 300);
+      });
+      if (roleSlider) {
+        roleSlider.setIndex(cur);
+        ready.push(roleRoot);
+        // bfcache restores the page as we left it; put the slider back on this page's side
+        window.addEventListener('pageshow', function (e) {
+          if (e.persisted) {
+            cur = initial;
+            roleSlider.setIndex(initial);
+          }
+        });
+      }
+    }
+
+    if (ready.length) {
+      requestAnimationFrame(function () {
+        for (var k = 0; k < ready.length; k++) ready[k].classList.add('is-ready');
+      });
+    }
+  }
+
   function initThemeToggle() {
     var btn = document.getElementById('theme-toggle');
     if (!btn) return;
@@ -394,6 +529,7 @@
 
   function boot() {
     initThemeToggle();
+    initSliders();
     if (document.body && document.body.getAttribute('data-page') === 'home') initHome();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
