@@ -115,7 +115,15 @@
     $('mode-badge').textContent = s.multi ? 'Multiple choice' : 'Single choice';
     $('anon-badge').textContent = s.anonymous ? 'Anonymous' : 'Names visible to you';
 
-    $('pin').textContent = s.pin;
+    var pinEl = $('pin');
+    if (pinEl.getAttribute('data-pin') !== s.pin) {
+      pinEl.setAttribute('data-pin', s.pin);
+      pinEl.setAttribute('aria-label', 'PIN ' + s.pin.split('').join(' '));
+      while (pinEl.firstChild) pinEl.removeChild(pinEl.firstChild);
+      s.pin.split('').forEach(function (d) {
+        pinEl.appendChild(el('span', { class: 'pin-digit', 'aria-hidden': 'true', text: d }));
+      });
+    }
     var link = location.origin + '/?pin=' + s.pin;
     if ($('share-link').value !== link) $('share-link').value = link;
 
@@ -146,12 +154,14 @@
       createPendingItem,
       function (li, p) {
         li._nameEl.textContent = p.name;
+        li._avatar.textContent = (Array.from(p.name)[0] || '?').toUpperCase();
       }
     );
   }
 
   function createPendingItem(p) {
     var nameEl = el('span', { class: 'item-name' });
+    var avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
     var approveBtn = el('button', { type: 'button', class: 'btn btn-primary btn-sm' }, 'Approve');
     var rejectBtn = el('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, 'Reject');
     approveBtn.setAttribute('aria-label', 'Approve ' + p.name);
@@ -177,8 +187,9 @@
       decide(false);
     });
 
-    var li = el('li', { class: 'list-item' }, el('div', { class: 'item-main' }, nameEl), el('div', { class: 'item-actions' }, approveBtn, rejectBtn));
+    var li = el('li', { class: 'list-item' }, el('div', { class: 'item-main' }, avatar, nameEl), el('div', { class: 'item-actions' }, approveBtn, rejectBtn));
     li._nameEl = nameEl;
+    li._avatar = avatar;
     return li;
   }
 
@@ -199,16 +210,19 @@
       },
       function () {
         var nameEl = el('span', { class: 'item-name' });
+        var avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
         var badge = el('span', { class: 'badge' });
         var sub = el('p', { class: 'item-sub muted small', hidden: true });
-        var li = el('li', { class: 'list-item' }, el('div', { class: 'item-main' }, nameEl, badge, sub));
+        var li = el('li', { class: 'list-item' }, el('div', { class: 'item-main' }, avatar, nameEl, badge, sub));
         li._nameEl = nameEl;
+        li._avatar = avatar;
         li._badge = badge;
         li._sub = sub;
         return li;
       },
       function (li, v) {
         li._nameEl.textContent = v.name;
+        li._avatar.textContent = (Array.from(v.name)[0] || '?').toUpperCase();
         li._badge.textContent = v.hasVoted ? 'Voted' : 'Not yet';
         li._badge.className = v.hasVoted ? 'badge badge-ok' : 'badge';
         // Anonymous polls never send `choices`, so there is nothing to show.

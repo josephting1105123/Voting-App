@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-page="admin">
-  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/"><span class="mark" aria-hidden="true"><svg viewBox="8 8 48 48" width="16" height="16" fill="currentColor"><rect x="14" y="12" width="36" height="8" rx="4"/><rect x="14" y="28" width="26" height="8" rx="4"/><rect x="14" y="44" width="36" height="8" rx="4"/></svg></span><span class="wordmark-text">Entropic Software Labs</span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="1" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="false" tabindex="-1">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="true" tabindex="0">Admin</button></div><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></div></header>
+  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/"><span class="mark" aria-hidden="true"><svg viewBox="96 118 320 276" width="18" height="16"><rect class="mark-bar" x="106" y="128" width="182.35" height="64" rx="32"/><rect class="mark-bar mark-bar-lead" x="106" y="224" width="300" height="64" rx="32"/><rect class="mark-bar" x="106" y="320" width="135.29" height="64" rx="32"/></svg></span><span class="wordmark-text">Entropic Software Labs</span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="1" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="false" tabindex="-1">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="true" tabindex="0">Admin</button></div><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></div></header>
   <div id="conn" class="conn" role="status" hidden>Connection lost. Reconnecting&hellip;</div>
   <main class="container">
     <div id="loading" class="card center" role="status">Loading&hellip;</div>
@@ -28,7 +28,7 @@
       <a class="btn btn-primary" href="/">Back to home</a>
     </div>
 
-    <div id="admin" hidden>
+    <div id="admin" class="bento" hidden>
       <header class="page-head">
         <h1 id="poll-title"></h1>
         <div class="badges">
@@ -38,9 +38,9 @@
         </div>
       </header>
 
-      <section class="card pin-card" aria-labelledby="pin-label">
+      <section class="card pin-card" id="pin-tile" aria-labelledby="pin-label">
         <p class="label" id="pin-label">Poll PIN</p>
-        <p class="pin" id="pin"></p>
+        <p class="pin" id="pin" role="img"></p>
         <div class="copy-row">
           <input id="share-link" class="input" type="text" readonly aria-label="Share link">
           <button type="button" id="copy-share" class="btn btn-secondary">Copy</button>
@@ -52,7 +52,7 @@
         <p class="muted small" id="keep-open-note">Keep this page open while people vote. Polls are deleted if the server restarts or nobody has a poll open for 15 minutes.</p>
       </section>
 
-      <section class="card" aria-label="Live results setting">
+      <section class="card" id="live-tile" aria-label="Live results setting">
         <div class="toggle-row" id="live-row">
           <div class="toggle-text">
             <span class="toggle-title" id="live-label">Live</span>
@@ -62,14 +62,14 @@
         </div>
       </section>
 
-      <section class="card" aria-labelledby="results-heading">
+      <section class="card" id="results-tile" aria-labelledby="results-heading">
         <h2 id="results-heading">Results</h2>
         <p class="muted" id="total"></p>
         <div id="results"></div>
         <p class="muted small" id="multi-note" hidden>Voters can pick more than one option. Each percentage is the share of voters who picked that option, so they can add up to more than 100%.</p>
       </section>
 
-      <section class="card" aria-labelledby="pending-heading">
+      <section class="card" id="pending-tile" aria-labelledby="pending-heading">
         <div class="list-item" id="pending-head">
           <h2 id="pending-heading">Pending (0)</h2>
           <button type="button" id="approve-all" class="btn btn-primary btn-sm" hidden>Approve all</button>
@@ -78,14 +78,14 @@
         <ul class="list" id="pending-list"></ul>
       </section>
 
-      <section class="card" aria-labelledby="voters-heading">
+      <section class="card" id="voters-tile" aria-labelledby="voters-heading">
         <h2 id="voters-heading">Voters (0)</h2>
         <p class="muted" id="voters-empty">No approved voters yet</p>
         <ul class="list" id="voters-list"></ul>
         <p class="muted small" id="rejected-note" hidden></p>
       </section>
 
-      <section class="card">
+      <section class="card" id="close-tile">
         <p class="muted" id="closed-note" hidden>This poll is closed. No one can join or vote.</p>
         <button type="button" id="close-btn" class="btn btn-danger btn-block">Close poll</button>
       </section>
@@ -93,7 +93,7 @@
   </main>
   <div id="admin-error" class="toast" role="alert" hidden>
     <span id="admin-error-text" class="toast-text"></span>
-    <button type="button" id="admin-error-close" class="toast-close" aria-label="Dismiss message">&times;</button>
+    <button type="button" id="admin-error-close" class="toast-close" aria-label="Dismiss message"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
   <script src="/socket.io/socket.io.js"></script>

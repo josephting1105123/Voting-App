@@ -44,7 +44,7 @@
   function addOption(focus) {
     if (rows().length >= MAX_OPTIONS) return;
     var input = QV.el('input', { type: 'text', maxlength: '100', autocomplete: 'off' });
-    var remove = QV.el('button', { type: 'button', class: 'btn btn-secondary btn-icon' }, '×');
+    var remove = QV.el('button', { type: 'button', class: 'btn btn-secondary btn-icon' }, QV.svgIcon('x'));
     var row = QV.el('li', { class: 'option-row' }, input, remove);
 
     remove.addEventListener('click', function () {
