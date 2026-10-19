@@ -508,10 +508,11 @@ a {
 @media (min-width: 900px) {
   .container-home {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 480px);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
     align-items: center;
-    column-gap: clamp(48px, 7vw, 160px);
-    max-width: none;
+    column-gap: clamp(40px, 5vw, 88px);
+    max-width: 1120px;
+    margin: 0 auto;
     min-height: calc(100svh - 57px);
     padding: 48px 32px 64px;
   }
@@ -789,10 +790,10 @@ input::placeholder {
 .pin-entry {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 52px));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
-  max-width: 360px;
+  max-width: none;
   font: 600 1.75rem/1 var(--f-ui);
   font-variant-numeric: tabular-nums;
 }
