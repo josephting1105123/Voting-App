@@ -103,6 +103,7 @@ body {
   line-height: 1.6;
   overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .container {
@@ -392,6 +393,59 @@ a {
   margin: 12px 0 0;
   color: var(--text-2);
   font-size: 1.1rem;
+}
+
+/* ---- home: full-width layout ---- */
+
+.field input.pin-input {
+  min-height: 56px;
+  text-align: center;
+  font-family: var(--f-num);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+}
+
+.field input.pin-input::placeholder {
+  letter-spacing: 0.18em;
+}
+
+@media (max-width: 479px) {
+  .container-home .hero {
+    margin: 12px 0 20px;
+  }
+}
+
+@media (min-width: 900px) {
+  .container-home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 480px);
+    align-items: center;
+    column-gap: clamp(48px, 7vw, 160px);
+    max-width: none;
+    min-height: calc(100svh - 57px);
+    padding: 48px 32px 64px;
+  }
+
+  .container-home .hero {
+    margin: 0;
+  }
+
+  .container-home .hero h1 {
+    font-size: clamp(3.6rem, 1rem + 5.2vw, 6rem);
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  .container-home .lead {
+    max-width: 30ch;
+    margin-top: 20px;
+    font-size: clamp(1.15rem, 0.8rem + 0.6vw, 1.4rem);
+  }
+
+  .container-home .home-side > .card:last-child {
+    margin-bottom: 0;
+  }
 }
 
 /* ---- page head / badges ---- */
@@ -818,6 +872,7 @@ input::placeholder {
 
 .hero-preview {
   position: relative;
+  max-width: 420px;
   margin-top: 24px;
   padding: 16px;
   border: 1px solid var(--hairline);
@@ -825,6 +880,12 @@ input::placeholder {
   background: var(--card);
   font-family: var(--f-num);
   box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 899px) {
+  .hero-preview {
+    display: none;
+  }
 }
 
 .preview-title {
@@ -929,15 +990,6 @@ input::placeholder {
   }
 }
 
-.field .pin-input {
-  min-height: 56px;
-  font-family: var(--f-num);
-  font-size: 1.5rem;
-  letter-spacing: 0.3em;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
 .host-cta {
   margin: 14px 0 0;
   text-align: center;
@@ -951,9 +1003,12 @@ input::placeholder {
 }
 
 .steps {
-  margin-top: 32px;
-  padding-top: 24px;
+  margin-top: 0;
   border-top: 1px solid var(--hairline);
+}
+
+.steps.container {
+  padding: 24px var(--gutter) 48px;
 }
 
 .step-list {
@@ -1000,11 +1055,14 @@ input::placeholder {
 }
 
 .site-foot {
-  padding: 24px var(--gutter) 40px;
   border-top: 1px solid var(--hairline);
   color: var(--text-3);
   font-size: 0.875rem;
   text-align: center;
+}
+
+.site-foot.container {
+  padding: 24px var(--gutter) 40px;
 }
 
 .site-foot p {
@@ -1013,6 +1071,20 @@ input::placeholder {
 
 .site-foot a {
   color: var(--text-2);
+}
+
+@media (min-width: 900px) {
+  .steps.container,
+  .site-foot.container {
+    max-width: none;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .step-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+  }
 }
 
 /* ---- lists ---- */

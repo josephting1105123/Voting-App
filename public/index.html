@@ -17,7 +17,7 @@
 </head>
 <body data-page="home">
   <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/"><span class="mark" aria-hidden="true"><svg viewBox="8 8 48 48" width="16" height="16" fill="currentColor"><rect x="14" y="12" width="36" height="8" rx="4"/><rect x="14" y="28" width="26" height="8" rx="4"/><rect x="14" y="44" width="36" height="8" rx="4"/></svg></span><span class="wordmark-text">Entropic Software Labs</span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="0" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="true" tabindex="0">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="false" tabindex="-1">Admin</button></div><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></div></header>
-  <main class="container">
+  <main class="container container-home">
     <section class="hero">
       <p class="eyebrow">Live polls for rooms full of phones</p>
       <h1>Put it to a vote.</h1>
@@ -31,16 +31,17 @@
       </div>
     </section>
 
+    <div class="home-side">
     <section class="card" aria-labelledby="join-heading">
       <h2 id="join-heading">Join a poll</h2>
       <form id="join-form" novalidate>
         <div class="field">
           <label for="pin">Poll PIN</label>
-          <input class="pin-input" id="pin" name="pin" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" placeholder="123456" required>
+          <input id="pin" name="pin" type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="off" placeholder="123456" class="pin-input" enterkeyhint="next" autocorrect="off" spellcheck="false" required>
         </div>
         <div class="field">
           <label for="name">Your name</label>
-          <input id="name" name="name" type="text" maxlength="40" autocomplete="nickname" placeholder="The host sees this" required>
+          <input id="name" name="name" type="text" maxlength="40" autocomplete="nickname" placeholder="The host sees this" enterkeyhint="go" autocapitalize="words" spellcheck="false" required>
         </div>
         <p id="join-error" class="error" role="alert" hidden></p>
         <button class="btn btn-primary btn-block" type="submit">Join</button>
@@ -52,16 +53,17 @@
       <h2 id="my-polls-heading">Your polls</h2>
       <ul class="list" id="my-polls-list"></ul>
     </section>
-
-    <section class="steps" aria-labelledby="steps-heading">
-      <h2 id="steps-heading">How it works</h2>
-      <ol class="step-list">
-        <li class="step"><span class="step-num" aria-hidden="true">1</span><div><h3 class="step-title">Make a poll</h3><p class="step-text muted">Type a question and the options. Pick one answer or several.</p></div></li>
-        <li class="step"><span class="step-num" aria-hidden="true">2</span><div><h3 class="step-title">Read out the PIN</h3><p class="step-text muted">Voters type the 6-digit PIN on this page and add their name.</p></div></li>
-        <li class="step"><span class="step-num" aria-hidden="true">3</span><div><h3 class="step-title">Watch it come in</h3><p class="step-text muted">You approve who gets in, and results update live as votes land.</p></div></li>
-      </ol>
-    </section>
+    </div>
   </main>
+
+  <section class="steps container" aria-labelledby="steps-heading">
+    <h2 id="steps-heading">How it works</h2>
+    <ol class="step-list">
+      <li class="step"><span class="step-num" aria-hidden="true">1</span><div><h3 class="step-title">Make a poll</h3><p class="step-text muted">Type a question and the options. Pick one answer or several.</p></div></li>
+      <li class="step"><span class="step-num" aria-hidden="true">2</span><div><h3 class="step-title">Read out the PIN</h3><p class="step-text muted">Voters type the 6-digit PIN on this page and add their name.</p></div></li>
+      <li class="step"><span class="step-num" aria-hidden="true">3</span><div><h3 class="step-title">Watch it come in</h3><p class="step-text muted">You approve who gets in, and results update live as votes land.</p></div></li>
+    </ol>
+  </section>
   <footer class="site-foot container"><p>No accounts. Polls are deleted after 24 hours.</p><p>Made by <a href="https://entropicsoftwarelabs.com/">Entropic Software Labs</a></p></footer>
   <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
   <script src="/js/common.js"></script>
