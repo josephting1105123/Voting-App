@@ -365,6 +365,9 @@
       var digits = pinInput.value.replace(/\D/g, '').slice(0, 6);
       if (digits !== pinInput.value) pinInput.value = digits;
       syncPinCells();
+      if (digits.length === 6 && !nameInput.value.trim() && document.activeElement === pinInput) {
+        nameInput.focus();
+      }
     });
 
     form.addEventListener('submit', function (e) {
