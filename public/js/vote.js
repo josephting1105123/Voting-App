@@ -207,7 +207,7 @@
         el(
           'div',
           { class: 'card center' },
-          el('div', { class: 'pulse', 'aria-hidden': 'true' }),
+          el('div', { class: 'wait-bars', 'aria-hidden': 'true' }, el('span'), el('span'), el('span')),
           titleEl,
           el('h1', null, 'Waiting for the host to let you in…'),
           el('p', { class: 'muted' }, 'You joined as ', nameEl),
@@ -313,7 +313,7 @@
         el(
           'div',
           null,
-          el('div', { class: 'card center' }, el('div', { class: 'big-check', 'aria-hidden': 'true' }, '✓'), el('h1', null, 'Vote recorded'), titleEl, closedNote),
+          el('div', { class: 'card center' }, el('div', { class: 'big-check', 'aria-hidden': 'true' }, QV.svgIcon('check')), el('h1', null, 'Vote recorded'), titleEl, closedNote),
           resultsCard
         )
       );

@@ -48,6 +48,32 @@
     return node;
   }
 
+  /* svgIcon('check' | 'x' | 'chevron-right'): fixed internal path table, built with createElementNS (no markup strings). */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var ICON_PATHS = {
+    check: 'M5 12.5l4.5 4.5L19 7.5',
+    x: 'M18 6 6 18M6 6l12 12',
+    'chevron-right': 'm9 6 6 6-6 6',
+  };
+
+  function svgIcon(name) {
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    if (Object.prototype.hasOwnProperty.call(ICON_PATHS, name)) {
+      var path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', ICON_PATHS[name]);
+      svg.appendChild(path);
+    }
+    return svg;
+  }
+
   /* ---- keyed list reconciliation: updates rows in place so buttons don't vanish under a tap ---- */
 
   function reconcile(container, items, key, create, update) {
@@ -95,7 +121,8 @@
       var list = el('ul', { class: 'results' });
       rows = new Map();
       options.forEach(function (o) {
-        var text = el('span', { class: 'result-text', text: o.text });
+        var mineTag = el('span', { class: 'result-mine' }, svgIcon('check'), el('span', { class: 'sr-only', text: 'your pick' }));
+        var text = el('span', { class: 'result-text', text: o.text }, mineTag);
         var num = el('span', { class: 'result-num' });
         var fill = el('div', { class: 'bar-fill' });
         var row = el('li', { class: 'result' }, el('div', { class: 'result-head' }, text, num), el('div', { class: 'bar', 'aria-hidden': 'true' }, fill));
@@ -108,6 +135,12 @@
       void list.offsetWidth; // flush so the first width change animates from 0
     }
 
+    var max = 0;
+    options.forEach(function (o) {
+      var c = counts.get(o.id) || 0;
+      if (c > max) max = c;
+    });
+
     options.forEach(function (o) {
       var r = rows.get(o.id);
       var count = counts.get(o.id) || 0;
@@ -115,6 +148,7 @@
       r.num.textContent = total > 0 ? count + ' · ' + pct + '%' : String(count);
       r.fill.style.width = pct + '%';
       r.row.classList.toggle('mine', mine.has(o.id));
+      r.row.classList.toggle('is-lead', max > 0 && count === max);
     });
   }
 
@@ -291,6 +325,14 @@
     var pinInput = $('pin');
     var nameInput = $('name');
     var errorBox = $('join-error');
+    var pinEntry = $('pin-entry');
+
+    function syncPinCells() {
+      if (!pinEntry) return;
+      pinEntry.setAttribute('data-len', String(pinInput.value.length));
+      var cells = pinEntry.querySelectorAll('.pin-cell');
+      for (var i = 0; i < cells.length; i++) cells[i].textContent = pinInput.value.charAt(i);
+    }
 
     function showError(message, field) {
       errorBox.textContent = message;
@@ -303,10 +345,26 @@
       pinInput.value = prefill;
       nameInput.focus();
     }
+    syncPinCells();
+
+    // Keep the caret at the end so typing always fills the next cell.
+    function caretToEnd() {
+      var n = pinInput.value.length;
+      try {
+        pinInput.setSelectionRange(n, n);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    pinInput.addEventListener('focus', caretToEnd);
+    pinInput.addEventListener('click', caretToEnd);
+    pinInput.addEventListener('keyup', caretToEnd);
+    pinInput.addEventListener('select', caretToEnd);
 
     pinInput.addEventListener('input', function () {
       var digits = pinInput.value.replace(/\D/g, '').slice(0, 6);
       if (digits !== pinInput.value) pinInput.value = digits;
+      syncPinCells();
     });
 
     form.addEventListener('submit', function (e) {
@@ -324,11 +382,13 @@
     if (polls.length > 0) {
       var list = $('my-polls-list');
       polls.forEach(function (p) {
+        var go = svgIcon('chevron-right');
+        go.setAttribute('class', 'poll-link-go');
         list.appendChild(
           el(
             'li',
             { class: 'list-item' },
-            el('a', { class: 'poll-link', href: '/admin.html#' + encodeURIComponent(p.adminToken) }, el('span', { class: 'poll-link-title', text: p.title }), el('span', { class: 'poll-link-pin', text: 'PIN ' + p.pin }))
+            el('a', { class: 'poll-link', href: '/admin.html#' + encodeURIComponent(p.adminToken) }, el('span', { class: 'poll-link-title', text: p.title }), el('span', { class: 'poll-link-pin', text: 'PIN ' + p.pin }), go)
           )
         );
       });
@@ -339,6 +399,7 @@
   window.QV = {
     $: $,
     el: el,
+    svgIcon: svgIcon,
     clear: clear,
     reconcile: reconcile,
     renderResults: renderResults,

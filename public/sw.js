@@ -15,6 +15,7 @@ const SHELL = [
   '/admin.html',
   '/vote.html',
   '/style.css',
+  '/fonts/geist_variable.ttf',
   '/js/theme.js',
   '/js/common.js',
   '/js/create.js',
