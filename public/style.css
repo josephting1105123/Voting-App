@@ -103,6 +103,7 @@ body {
   line-height: 1.6;
   overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .container {
@@ -392,6 +393,57 @@ a {
   margin: 12px 0 0;
   color: var(--text-2);
   font-size: 1.1rem;
+}
+
+/* ---- home: full-width layout ---- */
+
+.field input.pin-input {
+  font-family: var(--f-num);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+}
+
+.field input.pin-input::placeholder {
+  letter-spacing: 0.18em;
+}
+
+@media (max-width: 479px) {
+  .container-home .hero {
+    margin: 12px 0 20px;
+  }
+}
+
+@media (min-width: 900px) {
+  .container-home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 480px);
+    align-items: center;
+    column-gap: clamp(48px, 7vw, 160px);
+    max-width: none;
+    min-height: calc(100svh - 57px);
+    padding: 48px 32px 64px;
+  }
+
+  .container-home .hero {
+    margin: 0;
+  }
+
+  .container-home .hero h1 {
+    font-size: clamp(3.6rem, 1rem + 5.2vw, 6rem);
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  .container-home .lead {
+    max-width: 30ch;
+    margin-top: 20px;
+    font-size: clamp(1.15rem, 0.8rem + 0.6vw, 1.4rem);
+  }
+
+  .container-home .home-side > .card:last-child {
+    margin-bottom: 0;
+  }
 }
 
 /* ---- page head / badges ---- */
