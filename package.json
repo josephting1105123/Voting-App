@@ -1,6 +1,6 @@
 {
   "name": "quick-vote",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Real-time voting app: create a poll, share a PIN, approve voters, watch results live.",
   "private": true,
   "type": "commonjs",
