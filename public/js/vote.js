@@ -50,7 +50,10 @@
     ballot: 'You are in. Choose your answer.',
     voted: 'Vote recorded.',
     closed: 'This poll is closed.',
+    paused: 'Voting is paused.',
   };
+  var CHANGED_NOTICE = 'The host changed the poll, so your earlier vote was cleared. Vote again.';
+  var OPTIONS_CHANGED_NOTICE = 'The host changed the options. Check your choices before you vote.';
 
   /* ---- connection flow ---- */
 
@@ -150,17 +153,33 @@
     if (s.hasVoted) return 'voted';
     if (s.closed) return 'closed';
     if (s.status === 'pending') return 'pending';
+    if (s.paused) return 'paused';
     return 'ballot';
+  }
+
+  // Changes whenever the host edits what the ballot looks like, so a stale form gets rebuilt.
+  function ballotSig(s) {
+    return JSON.stringify([
+      s.multi,
+      s.maxChoices,
+      s.options.map(function (o) {
+        return o.text;
+      }),
+    ]);
   }
 
   function render(s) {
     if (s.status === 'rejected') QV.clearVoterToken(pin);
     var mode = modeOf(s);
-    if (current.mode !== mode) {
+    var sig = mode === 'ballot' ? ballotSig(s) : null;
+    var cleared = mode === 'ballot' && current.mode === 'voted';
+    var rebuilt = mode === 'ballot' && current.mode === 'ballot' && current.sig !== sig;
+    var notice = cleared ? CHANGED_NOTICE : rebuilt ? OPTIONS_CHANGED_NOTICE : null;
+    if (current.mode !== mode || notice) {
       QV.clear(view);
-      current = { mode: mode, update: builders[mode](s) };
+      current = { mode: mode, sig: sig, update: builders[mode](s, { notice: notice }) };
       document.title = s.title + ' - Quick Vote';
-      srStatus.textContent = ANNOUNCE[mode];
+      srStatus.textContent = notice || ANNOUNCE[mode];
     }
     current.update(s);
     // Declined is final: no resume, no re-join on reconnect.
@@ -250,19 +269,51 @@
       };
     },
 
-    ballot: function (s) {
+    paused: function () {
+      var titleEl = el('p', { class: 'poll-title' });
+      view.appendChild(
+        el(
+          'div',
+          { class: 'card center' },
+          titleEl,
+          el('h1', null, 'Voting is paused'),
+          el('p', { class: 'muted' }, 'The host has paused voting. This page will update when it reopens.')
+        )
+      );
+      return function (s) {
+        titleEl.textContent = s.title;
+      };
+    },
+
+    ballot: function (s, opts) {
       var titleEl = el('h1', { class: 'poll-title' });
+      var limited = s.multi && s.maxChoices && s.maxChoices < s.options.length;
+      var labels = [];
       var errorBox = el('p', { class: 'error', role: 'alert', hidden: true });
       var submit = el('button', { type: 'submit', class: 'btn btn-primary btn-block', disabled: true }, 'Submit vote');
       var type = s.multi ? 'checkbox' : 'radio';
       var inputs = [];
 
-      var fieldset = el('fieldset', { class: 'choices' }, el('legend', { class: 'sr-only' }, s.multi ? 'Choose one or more options' : 'Choose one option'));
+      var fieldset = el('fieldset', { class: 'choices' }, el('legend', { class: 'sr-only' }, limited ? 'Choose up to ' + s.maxChoices + ' options' : s.multi ? 'Choose one or more options' : 'Choose one option'));
       s.options.forEach(function (o) {
         var input = el('input', { type: type, name: 'choice', id: 'opt-' + o.id, value: String(o.id) });
         inputs.push(input);
-        fieldset.appendChild(el('label', { class: 'choice', for: 'opt-' + o.id }, input, el('span', { class: 'choice-text', text: o.text })));
+        var label = el('label', { class: 'choice', for: 'opt-' + o.id }, input, el('span', { class: 'choice-text', text: o.text }));
+        labels.push(label);
+        fieldset.appendChild(label);
       });
+
+      // Once the limit is reached the unchecked boxes lock, so the voter can't pick one too many.
+      function applyLimit() {
+        if (!s.multi || !s.maxChoices) return;
+        var full = picked().length >= s.maxChoices;
+        inputs.forEach(function (input, idx) {
+          var lock = full && !input.checked;
+          input.disabled = lock;
+          if (lock) labels[idx].setAttribute('aria-disabled', 'true');
+          else labels[idx].removeAttribute('aria-disabled');
+        });
+      }
 
       function picked() {
         return inputs
@@ -274,9 +325,15 @@
           });
       }
 
-      var form = el('form', { class: 'card ballot', novalidate: '' }, el('p', { class: 'paper-label' }, el('span', { lang: 'ms' }, 'Kertas undi'), ' · Ballot paper'), titleEl, el('p', { class: 'ballot-foot' }, s.multi ? 'Mark a cross in each box you choose.' : 'Mark one box with a cross.'), fieldset, errorBox, submit);
+      var footText = limited ? 'Mark a cross in up to ' + s.maxChoices + ' boxes.' : s.multi ? 'Mark a cross in each box you choose.' : 'Mark one box with a cross.';
+      var revision = s.revision;
+      var form = el('form', { class: 'card ballot', novalidate: '' }, el('p', { class: 'paper-label' }, el('span', { lang: 'ms' }, 'Kertas undi'), ' · Ballot paper'), titleEl, el('p', { class: 'ballot-foot' }, footText), fieldset, errorBox, submit);
+      if (opts && opts.notice) {
+        form.insertBefore(el('div', { class: 'notice notice-warn' }, el('p', null, opts.notice)), form.firstChild);
+      }
 
       form.addEventListener('change', function () {
+        applyLimit();
         submit.disabled = picked().length === 0;
         errorBox.hidden = true;
       });
@@ -284,10 +341,10 @@
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var choices = picked();
-        if (choices.length === 0 || (!s.multi && choices.length !== 1)) return;
+        if (choices.length === 0 || (!s.multi && choices.length !== 1) || (s.multi && s.maxChoices && choices.length > s.maxChoices)) return;
         submit.disabled = true;
         submit.textContent = 'Submitting…';
-        QV.emitAck(socket, 'voter:vote', { choices: choices }).then(function (res) {
+        QV.emitAck(socket, 'voter:vote', { choices: choices, revision: revision }).then(function (res) {
           if (res.ok) return; // the voter:state that follows swaps this view for "Vote recorded"
           errorBox.textContent = res.error || 'Could not record your vote.';
           errorBox.hidden = false;
@@ -300,6 +357,9 @@
       // Later states leave the form alone so a half-made selection isn't wiped when other people vote.
       return function (next) {
         titleEl.textContent = next.title;
+        // A change that leaves the ballot looking the same (same options) still bumps the revision;
+        // follow it so the voter isn't stuck on a stale-revision error they can't see the cause of.
+        revision = next.revision;
       };
     },
 
