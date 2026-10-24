@@ -1164,7 +1164,20 @@ textarea::placeholder {
 /* ---- admin ---- */
 
 .pin-card {
+  display: flex;
+  flex-direction: column;
   text-align: center;
+}
+
+#keep-open-note {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding-top: 18px;
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
 .pin {
@@ -1258,19 +1271,47 @@ textarea::placeholder {
   margin-top: 18px;
 }
 
-@media (max-width: 479px) {
-  .cohost-link-row {
-    flex-wrap: wrap;
-  }
+.reveal-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
-  .cohost-link-row .input {
-    flex: 1 1 100%;
-    order: -1;
-  }
+.reveal-field .input {
+  width: 100%;
+  padding-right: 48px;
+}
 
-  .cohost-link-row .btn {
-    flex: 1 1 0;
-  }
+.reveal-eye {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.reveal-eye:hover,
+.reveal-eye[aria-pressed='true'] {
+  color: var(--oxblood);
+  background: var(--accent-muted);
+}
+
+.reveal-eye:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 #results-tile {

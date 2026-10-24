@@ -311,7 +311,6 @@
   }
 
   function setRevealed(on) {
-    setSwap(cohostReveal, on);
     cohostReveal.setAttribute('aria-pressed', on ? 'true' : 'false');
     cohostLink.value = on ? location.href : MASK;
     cohostLink.setAttribute('aria-label', on ? 'Co-host link' : 'Co-host link (hidden)');
@@ -329,8 +328,31 @@
     cohostDialog.showModal();
   });
 
-  cohostReveal.addEventListener('click', function () {
-    setRevealed(!cohostReveal.dataset.on);
+  cohostReveal.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    setRevealed(true);
+    try {
+      cohostReveal.setPointerCapture(e.pointerId);
+    } catch (err) {
+      /* capture is best effort */
+    }
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture', 'blur'].forEach(function (name) {
+    cohostReveal.addEventListener(name, function () {
+      setRevealed(false);
+    });
+  });
+  cohostReveal.addEventListener('keydown', function (e) {
+    if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+      e.preventDefault();
+      setRevealed(true);
+    }
+  });
+  cohostReveal.addEventListener('keyup', function (e) {
+    if (e.key === ' ' || e.key === 'Enter') setRevealed(false);
+  });
+  cohostReveal.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
   });
 
   cohostCopy.addEventListener('click', function () {
@@ -363,7 +385,7 @@
   });
 
   cohostLink.addEventListener('copy', function (e) {
-    if (cohostReveal.dataset.on) return;
+    if (cohostReveal.getAttribute('aria-pressed') === 'true') return;
     e.preventDefault();
     if (e.clipboardData) e.clipboardData.setData('text/plain', location.href);
   });
