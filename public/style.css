@@ -978,6 +978,95 @@ textarea::placeholder {
   }
 }
 
+/* Slide-open row (max picks stepper) */
+
+.field-flush {
+  margin-bottom: 0;
+}
+
+.slide {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-bottom: 18px;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
+}
+
+.slide.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.slide-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide {
+    transition: none;
+  }
+}
+
+.max-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--hairline-strong);
+  border-radius: var(--r-input);
+  background: var(--input-bg);
+  font-family: var(--f-ui);
+  font-weight: 600;
+}
+
+.max-row #max-label {
+  flex: 1 1 10em;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-left: auto;
+}
+
+.btn-step {
+  width: 44px;
+  min-height: 44px;
+}
+
+#max-value {
+  min-width: 4.5em;
+  text-align: center;
+  font-weight: 600;
+  font-family: var(--f-ui);
+}
+
+#edit-note[hidden],
+#edit-cancel[hidden] {
+  display: none;
+}
+
+#edit-cancel {
+  margin-top: 10px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.toggle-row.is-locked {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.toggle-row.is-locked .switch {
+  cursor: default;
+}
+
 /* Switch (toggle) */
 
 .toggle-row {
@@ -1149,6 +1238,7 @@ textarea::placeholder {
 }
 
 #pending-head,
+#pending-dialog-head,
 #results-head,
 #voters-head {
   min-height: 0;
@@ -1158,6 +1248,7 @@ textarea::placeholder {
 }
 
 #pending-head h2,
+#pending-dialog-head h2,
 #results-head h2,
 #voters-head h2 {
   margin: 0;
@@ -1170,6 +1261,23 @@ textarea::placeholder {
 
 .voter-main .item-name {
   flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* pending rows: avatar + name + Approve + Reject on one line */
+.pending-rows .list-item {
+  flex-wrap: nowrap;
+}
+
+.pending-rows .item-main {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+}
+
+.pending-rows .item-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1214,6 +1322,40 @@ textarea::placeholder {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.pending-rows .item-actions {
+  flex: none;
+  gap: 6px;
+}
+
+.pending-rows .item-actions .btn-sm {
+  padding: 0 12px;
+}
+
+@media (max-width: 420px) {
+  .pending-rows .item-actions .btn-sm {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
+  .pending-rows .avatar {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+#pending-more {
+  margin-top: 12px;
+}
+
+.pending-dialog {
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+#pending-dialog-approve-all {
+  margin-top: 12px;
 }
 
 /* ---- admin ---- */
@@ -1276,6 +1418,10 @@ textarea::placeholder {
 
 #controls-tile .toggle-row {
   margin: 0;
+}
+
+#edit-btn {
+  margin-bottom: 8px;
 }
 
 .cohost-row {
@@ -1347,6 +1493,7 @@ textarea::placeholder {
 
 .dialog-actions {
   display: flex;
+  gap: 8px;
   justify-content: flex-end;
   margin-top: 18px;
 }
@@ -1424,7 +1571,7 @@ textarea::placeholder {
 
   .bento {
     display: grid;
-    grid-template-columns: 530px minmax(0, 1fr) 300px;
+    grid-template-columns: 430px minmax(0, 1fr) 400px;
     gap: 16px;
     align-items: stretch;
     grid-template-areas:
@@ -1756,6 +1903,29 @@ textarea::placeholder {
   font-size: 0.9375rem;
   font-weight: 500;
   text-align: center;
+}
+
+/* voter page: no top bar, card centered in the viewport */
+body[data-page='vote'] .conn {
+  top: 0;
+}
+
+body[data-page='vote'] .container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+body[data-page='vote'] #view {
+  width: 100%;
+}
+
+body[data-page='vote'] #view > .card {
+  margin-bottom: 0;
 }
 
 /* Admin error toast: a slip of paper fixed to the bottom of the viewport so it is seen wherever the host has scrolled to. */

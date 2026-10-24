@@ -106,33 +106,55 @@ function createStore(options = {}) {
 
   // ---- mutations -----------------------------------------------------------
 
-  // creatorIp is optional. When given, one IP may hold at most POLLS_PER_IP live polls
-  // (failure carries code: 'ip_limit' so the HTTP layer can answer 429).
-  function createPoll(input, creatorIp) {
-    const body = input !== null && typeof input === 'object' ? input : {};
-
+  // Validates the parts of a poll the host can set and later edit: title, options, multi, maxChoices.
+  // Returns { error } or { title, texts, multi, maxChoices }.
+  function parseBallot(body) {
     const title = cleanText(body.title, 'Title', L.TITLE_MAX);
-    if (title.error) return fail(title.error);
+    if (title.error) return { error: title.error };
 
-    if (!Array.isArray(body.options)) return fail('Options must be a list');
-    if (body.options.length < L.OPTIONS_MIN) return fail(`Add at least ${L.OPTIONS_MIN} options`);
-    if (body.options.length > L.OPTIONS_MAX) return fail(`Use at most ${L.OPTIONS_MAX} options`);
+    if (!Array.isArray(body.options)) return { error: 'Options must be a list' };
+    if (body.options.length < L.OPTIONS_MIN) return { error: `Add at least ${L.OPTIONS_MIN} options` };
+    if (body.options.length > L.OPTIONS_MAX) return { error: `Use at most ${L.OPTIONS_MAX} options` };
 
     const texts = [];
     const seen = new Set();
     for (let i = 0; i < body.options.length; i++) {
       const opt = cleanText(body.options[i], `Option ${i + 1}`, L.OPTION_MAX);
-      if (opt.error) return fail(opt.error);
+      if (opt.error) return { error: opt.error };
       const key = uniqueKey(opt.text);
-      if (seen.has(key)) return fail(`Option "${opt.text}" appears more than once`);
+      if (seen.has(key)) return { error: `Option "${opt.text}" appears more than once` };
       seen.add(key);
       texts.push(opt.text);
     }
 
-    for (const flag of ['multi', 'anonymous']) {
-      if (body[flag] !== undefined && typeof body[flag] !== 'boolean') {
-        return fail(`${flag} must be true or false`);
+    if (body.multi !== undefined && typeof body.multi !== 'boolean') return { error: 'multi must be true or false' };
+    const multi = body.multi === true;
+
+    let maxChoices = 1;
+    if (multi) {
+      if (body.maxChoices === undefined || body.maxChoices === null) {
+        maxChoices = texts.length;
+      } else if (Number.isInteger(body.maxChoices) && body.maxChoices >= 2 && body.maxChoices <= texts.length) {
+        maxChoices = body.maxChoices;
+      } else {
+        return { error: `Choose between 2 and ${texts.length} for how many options each voter can pick` };
       }
+    }
+
+    return { title: title.text, texts, multi, maxChoices };
+  }
+
+  // creatorIp is optional. When given, one IP may hold at most POLLS_PER_IP live polls
+  // (failure carries code: 'ip_limit' so the HTTP layer can answer 429).
+  function createPoll(input, creatorIp) {
+    const body = input !== null && typeof input === 'object' ? input : {};
+
+    // Same order as before: title, options, then the boolean flags. parseBallot checks multi itself, so the
+    // anonymous check can only run after it, which keeps every existing error message and precedence intact.
+    const ballot = parseBallot(body);
+    if (ballot.error) return fail(ballot.error);
+    if (body.anonymous !== undefined && typeof body.anonymous !== 'boolean') {
+      return fail('anonymous must be true or false');
     }
 
     const ip = typeof creatorIp === 'string' && creatorIp ? creatorIp : null;
@@ -153,11 +175,14 @@ function createStore(options = {}) {
       id,
       pin,
       adminToken: crypto.randomBytes(24).toString('hex'),
-      title: title.text,
-      options: texts.map((text, i) => ({ id: i, text, count: 0 })),
-      multi: body.multi === true,
+      title: ballot.title,
+      options: ballot.texts.map((text, i) => ({ id: i, text, count: 0 })),
+      multi: ballot.multi,
+      maxChoices: ballot.maxChoices,
       anonymous: body.anonymous === true,
       live: false,
+      paused: false,
+      revision: 0, // bumped whenever an edit resets the ballot, so stale votes can be refused
       closed: false,
       createdAt: now(),
       creatorIp: ip,
@@ -310,6 +335,44 @@ function createStore(options = {}) {
     return { ok: true, poll };
   }
 
+  function setPaused(adminToken, paused) {
+    const poll = getByAdminToken(adminToken);
+    if (!poll) return fail('Poll not found');
+    if (typeof paused !== 'boolean') return fail('paused must be true or false');
+    if (poll.closed) return fail('This poll is closed');
+    poll.paused = paused;
+    return { ok: true, poll };
+  }
+
+  // Edits a live poll in place (same PIN, same admin link). Changing the options, multi or maxChoices wipes
+  // the votes so counts never describe a different ballot; a title-only edit keeps them.
+  function editPoll(adminToken, input) {
+    const poll = getByAdminToken(adminToken);
+    if (!poll) return fail('Poll not found');
+    if (poll.closed) return fail('This poll is closed');
+    const ballot = parseBallot(input !== null && typeof input === 'object' ? input : {});
+    if (ballot.error) return fail(ballot.error);
+
+    const sameOptions =
+      ballot.texts.length === poll.options.length && ballot.texts.every((text, i) => text === poll.options[i].text);
+    const reset = !sameOptions || ballot.multi !== poll.multi || ballot.maxChoices !== poll.maxChoices;
+
+    poll.title = ballot.title;
+    if (reset) {
+      poll.options = ballot.texts.map((text, i) => ({ id: i, text, count: 0 }));
+      poll.multi = ballot.multi;
+      poll.maxChoices = ballot.maxChoices;
+      poll.totalVoted = 0;
+      poll.revision += 1;
+      for (const voter of poll.voters.values()) {
+        voter.hasVoted = false;
+        voter.choices = null;
+      }
+    }
+    poll.paused = false; // saving an edit reopens voting
+    return { ok: true, poll, reset };
+  }
+
   function closePoll(adminToken) {
     const poll = getByAdminToken(adminToken);
     if (!poll) return fail('Poll not found');
@@ -317,12 +380,16 @@ function createStore(options = {}) {
     return { ok: true, poll };
   }
 
-  function vote(voterToken, choices) {
+  function vote(voterToken, choices, revision) {
     const found = getVoterByToken(voterToken);
     if (!found) return fail('Voter not found');
     const { poll, voter } = found;
 
     if (poll.closed) return fail('This poll is closed');
+    if (poll.paused) return fail('Voting is paused');
+    if (revision !== undefined && revision !== null && revision !== poll.revision) {
+      return fail('The host changed the poll. Vote again.');
+    }
     if (voter.status === 'pending') return fail('The host has not approved you yet');
     if (voter.status !== 'approved') return fail('Your request was declined');
     if (voter.hasVoted) return fail('You have already voted');
@@ -337,6 +404,7 @@ function createStore(options = {}) {
       picked.add(c);
     }
     if (!poll.multi && picked.size !== 1) return fail('Choose exactly one option');
+    if (poll.multi && picked.size > poll.maxChoices) return fail(`Pick at most ${poll.maxChoices} options`);
 
     // All checks passed: commit.
     for (const c of picked) poll.options[c].count += 1;
@@ -365,8 +433,11 @@ function createStore(options = {}) {
       pin: poll.pin,
       title: poll.title,
       multi: poll.multi,
+      maxChoices: poll.maxChoices,
       anonymous: poll.anonymous,
       live: poll.live,
+      paused: poll.paused,
+      revision: poll.revision,
       closed: poll.closed,
       options: poll.options.map((o) => ({ id: o.id, text: o.text, count: o.count })),
       totalVoted: poll.totalVoted,
@@ -383,6 +454,9 @@ function createStore(options = {}) {
       name: voter.name,
       title: poll.title,
       multi: poll.multi,
+      maxChoices: poll.maxChoices,
+      paused: poll.paused,
+      revision: poll.revision,
       closed: poll.closed,
       // Options are only revealed once the host has let this voter in.
       options: voter.status === 'approved' ? poll.options.map((o) => ({ id: o.id, text: o.text })) : [],
@@ -427,6 +501,8 @@ function createStore(options = {}) {
     approveAll,
     removeVoter,
     setLive,
+    setPaused,
+    editPoll,
     closePoll,
     vote,
     adminView,

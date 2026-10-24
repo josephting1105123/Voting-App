@@ -16,7 +16,7 @@
 <body data-page="create">
   <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/" aria-label="Entropic Software Labs"><span class="mark" aria-hidden="true"><svg viewBox="76 82 360 360" fill="none" stroke="currentColor" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" focusable="false"><mask id="mark-liquid"><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104z" fill="#fff" stroke="none"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104" stroke="#000" stroke-width="60"/></mask><rect x="0" y="310" width="512" height="202" fill="currentColor" stroke="none" mask="url(#mark-liquid)"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104"/><path d="M196 104h120"/></svg></span><span class="wordmark-text"><span class="brand-short">Entropic</span><span class="brand-rest"> Software Labs</span></span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="1" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="false" tabindex="-1">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="true" tabindex="0">Admin</button></div></div></div></header>
   <main class="container">
-    <h1>New poll</h1>
+    <h1 id="page-heading">New poll</h1>
 
     <form id="create-form" class="card" novalidate>
       <div class="field">
@@ -31,13 +31,21 @@
         <p class="muted small" id="options-hint">2 to 20 options.</p>
       </div>
 
-      <fieldset class="field">
+      <fieldset class="field field-flush">
         <legend class="label">Voters can pick</legend>
         <div class="segmented">
           <label><input type="radio" name="mode" value="single" checked><span>One option</span></label>
           <label><input type="radio" name="mode" value="multi"><span>Multiple options</span></label>
         </div>
       </fieldset>
+      <div class="slide" id="max-slide" aria-hidden="true"><div class="slide-inner"><div class="max-row" id="max-row">
+        <span id="max-label">Each voter can pick up to</span>
+        <div class="stepper" role="group" aria-labelledby="max-label">
+          <button type="button" id="max-down" class="btn btn-secondary btn-icon btn-step" aria-label="Fewer" tabindex="-1">&minus;</button>
+          <output id="max-value" aria-live="polite"></output>
+          <button type="button" id="max-up" class="btn btn-secondary btn-icon btn-step" aria-label="More" tabindex="-1">+</button>
+        </div>
+      </div></div></div>
 
       <div class="toggle-row" id="anon-row">
         <div class="toggle-text">
@@ -48,11 +56,14 @@
       </div>
 
       <p id="create-error" class="error" role="alert" hidden></p>
+      <p class="muted small" id="edit-note" hidden>Changing the options or how many each voter can pick clears the votes cast so far. Fixing only the question keeps them.</p>
       <button type="submit" id="create-btn" class="btn btn-primary btn-block">Create poll</button>
+      <a class="btn btn-secondary btn-block" id="edit-cancel" hidden>Cancel</a>
       <p class="muted small" id="keep-open-note">Keep this page open while people vote. Polls are deleted if the server restarts or nobody has a poll open for 15 minutes.</p>
     </form>
   </main>
   <noscript><p class="container">Quick Vote needs JavaScript turned on.</p></noscript>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/create.js"></script>
 </body>

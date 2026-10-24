@@ -338,11 +338,14 @@ test('voterView never leaks the admin token or other voters', () => {
   assert.deepEqual(Object.keys(aliceView).sort(), [
     'closed',
     'hasVoted',
+    'maxChoices',
     'multi',
     'myChoices',
     'name',
     'options',
+    'paused',
     'results',
+    'revision',
     'status',
     'title',
   ]);
@@ -684,6 +687,201 @@ test('poll and voter ids are 32 hex chars; totalVoted is a counter shared by bot
   // Carol hasn't voted, so she sees no results even though the counter is 2.
   const carol = [...poll.poll.voters.values()].find((v) => v.name === 'Carol');
   assert.equal(store.voterView(poll.poll, carol).results, null);
+});
+
+// ---- pause, edit, maxChoices ----
+
+test('multi polls default maxChoices to the option count and validate an explicit one', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { multi: true });
+  assert.equal(poll.poll.maxChoices, 3);
+  assert.equal(store.adminView(poll.poll).maxChoices, 3);
+  assert.equal(newPoll(store, { multi: true, maxChoices: null }).poll.maxChoices, 3);
+  assert.equal(newPoll(store, { multi: true, maxChoices: 2 }).poll.maxChoices, 2);
+  assert.equal(newPoll(store, { multi: true, maxChoices: 3 }).poll.maxChoices, 3);
+
+  for (const maxChoices of [1, 4, 2.5, '3', 0, -2, NaN]) {
+    const r = store.createPoll({ title: 'T', options: ['a', 'b', 'c'], multi: true, maxChoices });
+    assert.equal(r.ok, false, String(maxChoices));
+    assert.match(r.error, /Choose between 2 and 3/);
+  }
+});
+
+test('single-choice polls ignore maxChoices and report 1', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { multi: false, maxChoices: 99 });
+  assert.equal(store.adminView(poll.poll).maxChoices, 1);
+  const v = addVoter(store, poll, 'Alice');
+  assert.equal(store.voterView(poll.poll, store.getVoterByToken(v.voterToken).voter).maxChoices, 1);
+});
+
+test('vote enforces maxChoices on multi polls', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { multi: true, maxChoices: 2 });
+  const v = addVoter(store, poll, 'Alice');
+  const tooMany = store.vote(v.voterToken, [0, 1, 2]);
+  assert.equal(tooMany.ok, false);
+  assert.equal(tooMany.error, 'Pick at most 2 options');
+  assert.equal(store.adminView(poll.poll).totalVoted, 0);
+  assert.equal(store.vote(v.voterToken, [0, 2]).ok, true);
+  assert.deepEqual(
+    store.adminView(poll.poll).options.map((o) => o.count),
+    [1, 0, 1]
+  );
+});
+
+test('setPaused blocks voting until resumed; rejects bad input and closed polls', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const v = addVoter(store, poll, 'Alice');
+  assert.equal(store.adminView(poll.poll).paused, false);
+
+  assert.equal(store.setPaused(poll.adminToken, true).ok, true);
+  assert.equal(store.adminView(poll.poll).paused, true);
+  assert.equal(store.voterView(poll.poll, store.getVoterByToken(v.voterToken).voter).paused, true);
+  const blocked = store.vote(v.voterToken, [0]);
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.error, 'Voting is paused');
+  assert.equal(store.joinPoll(poll.pin, 'Bob').ok, true); // joining stays open while paused
+
+  assert.equal(store.setPaused(poll.adminToken, false).ok, true);
+  assert.equal(store.vote(v.voterToken, [0]).ok, true);
+
+  assert.equal(store.setPaused(poll.adminToken, 'yes').ok, false);
+  assert.equal(store.setPaused('wrong', true).ok, false);
+  store.closePoll(poll.adminToken);
+  const closed = store.setPaused(poll.adminToken, true);
+  assert.equal(closed.ok, false);
+  assert.equal(closed.error, 'This poll is closed');
+});
+
+test('editPoll with only a new title keeps votes and reports reset=false', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { multi: true, maxChoices: 2 });
+  const v = addVoter(store, poll, 'Alice');
+  store.vote(v.voterToken, [0, 1]);
+
+  const r = store.editPoll(poll.adminToken, {
+    title: 'Dinner?',
+    options: ['Pizza', 'Sushi', 'Tacos'],
+    multi: true,
+    maxChoices: 2,
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.reset, false);
+  const view = store.adminView(poll.poll);
+  assert.equal(view.title, 'Dinner?');
+  assert.equal(view.totalVoted, 1);
+  assert.deepEqual(
+    view.options.map((o) => o.count),
+    [1, 1, 0]
+  );
+  const rec = store.getVoterByToken(v.voterToken).voter;
+  assert.equal(rec.hasVoted, true);
+  assert.deepEqual(rec.choices, [0, 1]);
+});
+
+test('editPoll that changes options, multi or maxChoices resets votes; PIN and admin token stay', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { multi: true, maxChoices: 2 });
+  const v = addVoter(store, poll, 'Alice');
+  const full = { title: 'Lunch?', options: ['Pizza', 'Sushi', 'Tacos'], multi: true, maxChoices: 2 };
+
+  const check = (edit, label) => {
+    const fresh = store.vote(v.voterToken, store.adminView(poll.poll).multi ? [0, 1] : [0]);
+    assert.equal(fresh.ok, true, `${label}: ${fresh.error}`);
+    const r = store.editPoll(poll.adminToken, { ...full, ...edit });
+    assert.equal(r.ok, true, `${label}: ${r.error}`);
+    assert.equal(r.reset, true, label);
+    const view = store.adminView(poll.poll);
+    assert.equal(view.totalVoted, 0, label);
+    assert.ok(view.options.every((o) => o.count === 0), label);
+    const rec = store.getVoterByToken(v.voterToken).voter;
+    assert.equal(rec.hasVoted, false, label);
+    assert.equal(rec.choices, null, label);
+    assert.equal(view.pin, poll.pin);
+    assert.equal(store.getByAdminToken(poll.adminToken), poll.poll);
+    assert.equal(store.getByPin(poll.pin), poll.poll);
+  };
+
+  check({ options: ['Pizza', 'Sushi', 'Ramen'] }, 'option text');
+  full.options = ['Pizza', 'Sushi', 'Ramen'];
+  check({ options: ['Ramen', 'Sushi', 'Pizza'] }, 'option order');
+  full.options = ['Ramen', 'Sushi', 'Pizza'];
+  check({ maxChoices: 3 }, 'maxChoices');
+  full.maxChoices = 3;
+  check({ multi: false }, 'multi');
+  assert.equal(poll.poll.multi, false);
+  assert.equal(poll.poll.maxChoices, 1);
+  full.multi = false;
+  check({ options: ['Ramen', 'Sushi', 'Pizza', 'Curry'] }, 'option count');
+  assert.equal(store.adminView(poll.poll).options.length, 4);
+});
+
+test('editPoll reopens a paused poll, and a reset voter can vote again', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const v = addVoter(store, poll, 'Alice');
+  store.vote(v.voterToken, [0]);
+  store.setPaused(poll.adminToken, true);
+  const r = store.editPoll(poll.adminToken, { title: 'Lunch?', options: ['Pizza', 'Sushi'], multi: false });
+  assert.equal(r.ok, true);
+  assert.equal(store.adminView(poll.poll).paused, false);
+  assert.equal(store.vote(v.voterToken, [1]).ok, true);
+  assert.equal(store.adminView(poll.poll).totalVoted, 1);
+});
+
+test('editPoll refuses closed polls, bad tokens and invalid ballots, leaving the poll untouched', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const v = addVoter(store, poll, 'Alice');
+  store.vote(v.voterToken, [2]);
+  const before = JSON.stringify(store.adminView(poll.poll));
+
+  assert.equal(store.editPoll('wrong', { title: 'T', options: ['a', 'b'] }).ok, false);
+  assert.equal(store.editPoll(poll.adminToken, { title: 'T', options: ['only one'] }).ok, false);
+  assert.equal(store.editPoll(poll.adminToken, null).ok, false);
+  assert.equal(store.editPoll(poll.adminToken, { title: 'T', options: ['a', 'b'], multi: true, maxChoices: 3 }).ok, false);
+  assert.equal(JSON.stringify(store.adminView(poll.poll)), before);
+  assert.equal(store.getVoterByToken(v.voterToken).voter.hasVoted, true);
+
+  store.closePoll(poll.adminToken);
+  const closed = store.editPoll(poll.adminToken, { title: 'T', options: ['a', 'b'] });
+  assert.equal(closed.ok, false);
+  assert.equal(closed.error, 'This poll is closed');
+});
+
+test('a vote carrying a stale revision is refused after an option-changing edit', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const alice = addVoter(store, poll, 'Alice');
+  const rev0 = store.voterView(poll.poll, store.getVoterByToken(alice.voterToken).voter).revision;
+  assert.equal(rev0, 0);
+
+  assert.equal(store.editPoll(poll.adminToken, { title: 'Lunch?', options: ['Ramen', 'Pizza', 'Tacos'] }).reset, true);
+  const stale = store.vote(alice.voterToken, [0], rev0);
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error, 'The host changed the poll. Vote again.');
+  assert.equal(store.adminView(poll.poll).totalVoted, 0);
+  assert.ok(store.adminView(poll.poll).options.every((o) => o.count === 0));
+  assert.equal(store.getVoterByToken(alice.voterToken).voter.hasVoted, false);
+
+  const current = store.vote(alice.voterToken, [0], store.adminView(poll.poll).revision);
+  assert.equal(current.ok, true, current.error);
+  assert.equal(store.adminView(poll.poll).options[0].count, 1);
+});
+
+test('a title-only edit keeps the revision; a vote without a revision still works', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const alice = addVoter(store, poll, 'Alice');
+  const edit = store.editPoll(poll.adminToken, { title: 'Dinner?', options: ['Pizza', 'Sushi', 'Tacos'] });
+  assert.equal(edit.reset, false);
+  assert.equal(store.adminView(poll.poll).revision, 0);
+  assert.equal(store.vote(alice.voterToken, [1], 0).ok, true);
+
+  const bob = addVoter(store, poll, 'Bob');
+  assert.equal(store.vote(bob.voterToken, [2]).ok, true);
 });
 
 // ---- name keys and removing voters ----

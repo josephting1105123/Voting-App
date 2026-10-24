@@ -662,6 +662,128 @@ test('CSP connect-src is built from a validated Host header', async () => {
   }
 });
 
+test('admin:setPaused blocks voting and admin:edit resets the ballot for everyone', { timeout: 30000 }, async () => {
+  const app = await start(0);
+  const sockets = [];
+  try {
+    const { pin, adminToken } = (await postJson(`${app.url}/api/polls`, { title: 'Room', options: ['a', 'b'] })).body;
+    const admin = await open(app.url);
+    sockets.push(admin);
+    const adminState = track(admin, 'admin:state');
+    assert.equal((await ask(admin, 'admin:auth', { token: adminToken })).ok, true);
+
+    const voter = await open(app.url);
+    sockets.push(voter);
+    const voterState = track(voter, 'voter:state');
+    assert.equal((await ask(voter, 'voter:join', { pin, name: 'Alice' })).ok, true);
+    const pending = await adminState.waitFor((s) => s.pending.length === 1);
+    assert.equal((await ask(admin, 'admin:decide', { voterId: pending.pending[0].id, approve: true })).ok, true);
+    await voterState.waitFor((s) => s.status === 'approved');
+
+    // Pause: voters see it and cannot vote.
+    assert.equal((await ask(admin, 'admin:setPaused', { paused: 'yes' })).ok, false);
+    assert.equal((await ask(admin, 'admin:setPaused', { paused: true })).ok, true);
+    await adminState.waitFor((s) => s.paused === true);
+    await voterState.waitFor((s) => s.paused === true);
+    const blocked = await ask(voter, 'voter:vote', { choices: [0] });
+    assert.equal(blocked.ok, false);
+    assert.equal(blocked.error, 'Voting is paused');
+
+    // Resume and vote.
+    assert.equal((await ask(admin, 'admin:setPaused', { paused: false })).ok, true);
+    await voterState.waitFor((s) => s.paused === false);
+    assert.equal((await ask(voter, 'voter:vote', { choices: [0] })).ok, true);
+    await voterState.waitFor((s) => s.hasVoted === true);
+
+    // Edit with new options: reset, same PIN, voter can vote again.
+    const res = await ask(admin, 'admin:edit', { title: 'New room', options: ['x', 'y', 'z'], multi: false });
+    assert.deepEqual(res, { ok: true, reset: true });
+    const fresh = await voterState.waitFor((s) => s.title === 'New room' && s.hasVoted === false);
+    assert.deepEqual(
+      fresh.options.map((o) => o.text),
+      ['x', 'y', 'z']
+    );
+    const adminNow = await adminState.waitFor((s) => s.title === 'New room');
+    assert.equal(adminNow.pin, pin);
+    assert.equal(adminNow.totalVoted, 0);
+
+    // Title-only edit keeps votes.
+    assert.equal((await ask(voter, 'voter:vote', { choices: [1] })).ok, true);
+    await adminState.waitFor((s) => s.totalVoted === 1);
+    assert.deepEqual(await ask(admin, 'admin:edit', { title: 'Renamed', options: ['x', 'y', 'z'] }), { ok: true, reset: false });
+    const kept = await adminState.waitFor((s) => s.title === 'Renamed');
+    assert.equal(kept.totalVoted, 1);
+
+    // Invalid edit and non-admin are refused.
+    assert.equal((await ask(admin, 'admin:edit', { title: 'T', options: ['only'] })).ok, false);
+    assert.equal((await ask(voter, 'admin:edit', { title: 'T', options: ['a', 'b'] })).ok, false);
+    assert.equal((await ask(voter, 'admin:setPaused', { paused: true })).ok, false);
+  } finally {
+    for (const s of sockets) s.close();
+    await app.close();
+  }
+});
+
+test('POST /api/polls accepts maxChoices for multi polls and rejects bad values', async () => {
+  const app = await start(0);
+  const sockets = [];
+  try {
+    const bad = await postJson(`${app.url}/api/polls`, { title: 'T', options: ['a', 'b', 'c'], multi: true, maxChoices: 1 });
+    assert.equal(bad.status, 400);
+
+    const { status, body } = await postJson(`${app.url}/api/polls`, {
+      title: 'T',
+      options: ['a', 'b', 'c'],
+      multi: true,
+      maxChoices: 2,
+    });
+    assert.equal(status, 201);
+    const admin = await open(app.url);
+    sockets.push(admin);
+    const res = await ask(admin, 'admin:auth', { token: body.adminToken });
+    assert.equal(res.ok, true);
+    assert.equal(res.state.multi, true);
+    assert.equal(res.state.maxChoices, 2);
+    assert.equal(res.state.paused, false);
+  } finally {
+    for (const s of sockets) s.close();
+    await app.close();
+  }
+});
+
+test('a vote sent with an old revision is refused after the host edits the options', { timeout: 30000 }, async () => {
+  const app = await start(0);
+  const sockets = [];
+  try {
+    const { pin, adminToken } = (await postJson(`${app.url}/api/polls`, { title: 'Room', options: ['a', 'b', 'c'] })).body;
+    const admin = await open(app.url);
+    sockets.push(admin);
+    const adminState = track(admin, 'admin:state');
+    assert.equal((await ask(admin, 'admin:auth', { token: adminToken })).ok, true);
+
+    const voter = await open(app.url);
+    sockets.push(voter);
+    const voterState = track(voter, 'voter:state');
+    assert.equal((await ask(voter, 'voter:join', { pin, name: 'Alice' })).ok, true);
+    const pending = await adminState.waitFor((s) => s.pending.length === 1);
+    assert.equal((await ask(admin, 'admin:decide', { voterId: pending.pending[0].id, approve: true })).ok, true);
+    const approved = await voterState.waitFor((s) => s.status === 'approved');
+    assert.equal(approved.revision, 0);
+
+    assert.deepEqual(await ask(admin, 'admin:edit', { title: 'Room', options: ['c', 'b', 'a'], multi: false }), { ok: true, reset: true });
+    const updated = await voterState.waitFor((s) => s.revision === 1);
+    assert.equal(updated.revision, 1);
+
+    const stale = await ask(voter, 'voter:vote', { choices: [0], revision: 0 });
+    assert.equal(stale.ok, false);
+    assert.equal(stale.error, 'The host changed the poll. Vote again.');
+    assert.equal((await ask(voter, 'voter:vote', { choices: [0], revision: 1 })).ok, true);
+  } finally {
+    for (const s of sockets) s.close();
+    await app.close();
+  }
+});
+
 test('admin:remove takes an approved voter out and tells them', async () => {
   const app = await start(0);
   const sockets = [];

@@ -31,6 +31,7 @@
         <h1 id="poll-title"></h1>
         <div class="badges">
           <span class="badge badge-closed" id="closed-badge" hidden>Closed</span>
+          <span class="badge" id="paused-badge" hidden>Voting paused</span>
           <span class="badge" id="mode-badge"></span>
           <span class="badge" id="anon-badge"></span>
         </div>
@@ -64,7 +65,8 @@
           <button type="button" id="approve-all" class="btn btn-primary btn-sm" hidden>Approve all</button>
         </div>
         <p class="muted" id="pending-empty">No one waiting</p>
-        <ul class="list" id="pending-list"></ul>
+        <ul class="list pending-rows" id="pending-list"></ul>
+        <button type="button" id="pending-more" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" hidden></button>
       </section>
 
       <section class="card" id="voters-tile" aria-labelledby="voters-heading">
@@ -87,6 +89,13 @@
           </div>
           <button type="button" id="live-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="live-label" aria-describedby="live-help"></button>
         </div>
+        <div class="toggle-row" id="pause-row">
+          <div class="toggle-text">
+            <span class="toggle-title" id="pause-label">Pause voting</span>
+            <span class="muted small" id="pause-help">Stops everyone from voting, for example when time's up</span>
+          </div>
+          <button type="button" id="pause-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="pause-label" aria-describedby="pause-help"></button>
+        </div>
         <hr class="controls-rule">
         <div class="cohost-row">
           <span class="toggle-title" id="cohost-label">Let others co-host the session</span>
@@ -94,10 +103,20 @@
         </div>
         <hr class="controls-rule">
         <p class="muted" id="closed-note" hidden>This poll is closed. No one can join or vote.</p>
-        <button type="button" id="close-btn" class="btn btn-danger btn-block">Close poll</button>
+        <button type="button" id="edit-btn" class="btn btn-secondary btn-block" aria-haspopup="dialog">Edit poll</button>
+        <button type="button" id="close-btn" class="btn btn-danger btn-block" aria-haspopup="dialog">Close poll</button>
       </section>
     </div>
   </main>
+  <dialog id="pending-dialog" class="paper dialog pending-dialog" aria-labelledby="pending-dialog-heading">
+    <div class="list-item" id="pending-dialog-head">
+      <h2 id="pending-dialog-heading">Pending (0)</h2>
+      <button type="button" id="pending-dialog-close" class="btn btn-secondary btn-sm btn-icon" aria-label="Close"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <p class="muted" id="pending-dialog-empty" hidden>No one waiting</p>
+    <ul class="list pending-rows" id="pending-dialog-list"></ul>
+    <button type="button" id="pending-dialog-approve-all" class="btn btn-primary btn-block" hidden>Approve all</button>
+  </dialog>
   <dialog id="cohost-dialog" class="paper dialog" aria-labelledby="cohost-title">
     <h2 id="cohost-title">Co-host this poll</h2>
     <div class="notice notice-warn">
@@ -128,6 +147,27 @@
     <p class="small voters-dialog-error" id="voters-dialog-error" role="alert" hidden></p>
     <p class="sr-only" id="voters-status" role="status" aria-live="polite"></p>
     <div class="dialog-actions"><button type="button" id="voters-done" class="btn btn-primary btn-sm">Done</button></div>
+  </dialog>
+  <dialog id="edit-dialog" class="paper dialog" aria-labelledby="edit-title" aria-describedby="edit-desc">
+    <h2 id="edit-title">Edit this poll?</h2>
+    <p id="edit-desc">Voting pauses as soon as you continue, so nobody votes on a question that's about to change. It reopens when you save or cancel.</p>
+    <div class="notice notice-warn">
+      <p>Changing the options clears the votes cast so far. Fixing only the question keeps them.</p>
+    </div>
+    <p class="error" role="alert" hidden id="edit-error"></p>
+    <div class="dialog-actions">
+      <button type="button" id="edit-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+      <button type="button" id="edit-confirm" class="btn btn-primary btn-sm">Pause and edit</button>
+    </div>
+  </dialog>
+  <dialog id="close-dialog" class="paper dialog" aria-labelledby="close-title" aria-describedby="close-desc">
+    <h2 id="close-title">Close this poll?</h2>
+    <p id="close-desc">No one can join or vote after this, and it can't be reopened. The results stay on this page.</p>
+    <p class="error" role="alert" hidden id="close-error"></p>
+    <div class="dialog-actions">
+      <button type="button" id="close-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+      <button type="button" id="close-confirm" class="btn btn-danger btn-sm">Close poll</button>
+    </div>
   </dialog>
   <div id="admin-error" class="toast" role="alert" hidden>
     <span id="admin-error-text" class="toast-text"></span>
