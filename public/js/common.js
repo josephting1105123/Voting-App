@@ -566,33 +566,7 @@
     }
   }
 
-  function initThemeToggle() {
-    var btn = document.getElementById('theme-toggle');
-    if (!btn) return;
-    function current() {
-      return (
-        document.documentElement.getAttribute('data-theme') ||
-        (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-      );
-    }
-    function label() {
-      btn.setAttribute('aria-label', 'Switch to ' + (current() === 'dark' ? 'light' : 'dark') + ' theme');
-    }
-    label();
-    btn.addEventListener('click', function () {
-      var next = current() === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      try {
-        localStorage.setItem('qv-theme', next);
-      } catch (e) {
-        /* ignore */
-      }
-      label();
-    });
-  }
-
   function boot() {
-    initThemeToggle();
     initSliders();
     if (document.body && document.body.getAttribute('data-page') === 'home') initHome();
   }

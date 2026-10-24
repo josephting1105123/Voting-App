@@ -294,7 +294,101 @@
   wireCopy($('copy-share'), function () {
     return $('share-link').value;
   }, $('share-link'));
-  wireCopy($('copy-admin'), function () {
-    return location.href;
+
+  var MASK = '••••••••••••••••••••';
+  var cohostDialog = $('cohost-dialog');
+  var cohostLink = $('cohost-link');
+  var cohostCopy = $('cohost-copy');
+  var cohostReveal = $('cohost-reveal');
+
+  function setSwap(btn, on) {
+    if (on) btn.dataset.on = '1';
+    else delete btn.dataset.on;
+    var a = btn.querySelector('.swap-a');
+    var b = btn.querySelector('.swap-b');
+    if (a) a.setAttribute('aria-hidden', on ? 'true' : 'false');
+    if (b) b.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+
+  function setRevealed(on) {
+    cohostReveal.setAttribute('aria-pressed', on ? 'true' : 'false');
+    cohostLink.value = on ? location.href : MASK;
+    cohostLink.setAttribute('aria-label', on ? 'Co-host link' : 'Co-host link (hidden)');
+  }
+
+  function resetCohost() {
+    setRevealed(false);
+    clearTimeout(cohostCopy._timer);
+    setSwap(cohostCopy, false);
+    $('cohost-status').textContent = '';
+  }
+
+  $('cohost-open').addEventListener('click', function () {
+    resetCohost();
+    cohostDialog.showModal();
   });
+
+  cohostReveal.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    setRevealed(true);
+    try {
+      cohostReveal.setPointerCapture(e.pointerId);
+    } catch (err) {
+      /* capture is best effort */
+    }
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture', 'blur'].forEach(function (name) {
+    cohostReveal.addEventListener(name, function () {
+      setRevealed(false);
+    });
+  });
+  cohostReveal.addEventListener('keydown', function (e) {
+    if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+      e.preventDefault();
+      setRevealed(true);
+    }
+  });
+  cohostReveal.addEventListener('keyup', function (e) {
+    if (e.key === ' ' || e.key === 'Enter') setRevealed(false);
+  });
+  cohostReveal.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+  });
+
+  cohostCopy.addEventListener('click', function () {
+    QV.copyToClipboard(location.href).then(function (ok) {
+      if (ok) {
+        clearTimeout(cohostCopy._timer);
+        setSwap(cohostCopy, true);
+        $('cohost-status').textContent = 'Link copied';
+        cohostCopy._timer = setTimeout(function () {
+          setSwap(cohostCopy, false);
+          $('cohost-status').textContent = '';
+        }, 1500);
+      } else {
+        setRevealed(true);
+        cohostLink.select();
+      }
+    });
+  });
+
+  $('cohost-done').addEventListener('click', function () {
+    cohostDialog.close();
+  });
+
+  cohostDialog.addEventListener('click', function (e) {
+    if (e.target !== cohostDialog) return;
+    var r = cohostDialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+      cohostDialog.close();
+    }
+  });
+
+  cohostLink.addEventListener('copy', function (e) {
+    if (cohostReveal.getAttribute('aria-pressed') === 'true') return;
+    e.preventDefault();
+    if (e.clipboardData) e.clipboardData.setData('text/plain', location.href);
+  });
+
+  cohostDialog.addEventListener('close', resetCohost);
 })();
