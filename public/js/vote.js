@@ -274,7 +274,7 @@
           });
       }
 
-      var form = el('form', { class: 'card', novalidate: '' }, titleEl, el('p', { class: 'muted' }, s.multi ? 'Select all that apply.' : 'Select one.'), fieldset, errorBox, submit);
+      var form = el('form', { class: 'card ballot', novalidate: '' }, el('p', { class: 'paper-label' }, el('span', { lang: 'ms' }, 'Kertas undi'), ' · Ballot paper'), titleEl, el('p', { class: 'ballot-foot' }, s.multi ? 'Mark a cross in each box you choose.' : 'Mark one box with a cross.'), fieldset, errorBox, submit);
 
       form.addEventListener('change', function () {
         submit.disabled = picked().length === 0;
