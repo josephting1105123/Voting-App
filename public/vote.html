@@ -5,19 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#E3DCCE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#E3DCCE">
   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Vote - Quick Vote</title>
-  <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-page="vote">
-  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/" aria-label="Entropic Software Labs"><span class="mark" aria-hidden="true"><svg viewBox="76 82 360 360" fill="none" stroke="currentColor" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" focusable="false"><mask id="mark-liquid"><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104z" fill="#fff" stroke="none"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104" stroke="#000" stroke-width="60"/></mask><rect x="0" y="310" width="512" height="202" fill="currentColor" stroke="none" mask="url(#mark-liquid)"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104"/><path d="M196 104h120"/></svg></span><span class="wordmark-text"><span class="brand-short">Entropic</span><span class="brand-rest"> Software Labs</span></span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="0" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="true" tabindex="0">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="false" tabindex="-1">Admin</button></div><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></div></header>
+  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/" aria-label="Entropic Software Labs"><span class="mark" aria-hidden="true"><svg viewBox="76 82 360 360" fill="none" stroke="currentColor" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" focusable="false"><mask id="mark-liquid"><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104z" fill="#fff" stroke="none"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104" stroke="#000" stroke-width="60"/></mask><rect x="0" y="310" width="512" height="202" fill="currentColor" stroke="none" mask="url(#mark-liquid)"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104"/><path d="M196 104h120"/></svg></span><span class="wordmark-text"><span class="brand-short">Entropic</span><span class="brand-rest"> Software Labs</span></span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="0" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="true" tabindex="0">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="false" tabindex="-1">Admin</button></div></div></div></header>
   <div id="conn" class="conn" role="status" hidden>Connection lost. Reconnecting&hellip;</div>
   <main class="container">
     <p id="sr-status" class="sr-only" role="status"></p>
