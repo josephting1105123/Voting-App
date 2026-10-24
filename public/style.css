@@ -1731,6 +1731,29 @@ textarea::placeholder {
   text-align: center;
 }
 
+/* voter page: no top bar, card centered in the viewport */
+body[data-page='vote'] .conn {
+  top: 0;
+}
+
+body[data-page='vote'] .container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+body[data-page='vote'] #view {
+  width: 100%;
+}
+
+body[data-page='vote'] #view > .card {
+  margin-bottom: 0;
+}
+
 /* Admin error toast: a slip of paper fixed to the bottom of the viewport so it is seen wherever the host has scrolled to. */
 .toast {
   position: fixed;

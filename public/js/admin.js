@@ -182,7 +182,7 @@
   function createPendingItem(p) {
     var nameEl = el('span', { class: 'item-name' });
     var avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
-    var approveBtn = el('button', { type: 'button', class: 'btn btn-primary btn-sm' }, 'Approve');
+    var approveBtn = el('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, 'Approve');
     var rejectBtn = el('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, 'Reject');
     approveBtn.setAttribute('aria-label', 'Approve ' + p.name);
     rejectBtn.setAttribute('aria-label', 'Reject ' + p.name);
