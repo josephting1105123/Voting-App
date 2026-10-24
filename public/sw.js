@@ -5,7 +5,7 @@
  * activate deletes any cache with a different name. */
 'use strict';
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE = 'quick-vote-' + CACHE_VERSION;
 
 const SHELL = [
@@ -15,7 +15,9 @@ const SHELL = [
   '/admin.html',
   '/vote.html',
   '/style.css',
-  '/fonts/geist_variable.ttf',
+  '/fonts/sourceserif4-latin.woff2',
+  '/textures/guilloche.svg',
+  '/textures/guilloche-light.svg',
   '/js/theme.js',
   '/js/common.js',
   '/js/create.js',

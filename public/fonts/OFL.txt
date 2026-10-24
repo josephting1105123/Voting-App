@@ -1,5 +1,4 @@
-Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font)
-Copyright 2017 IBM Corp. with Reserved Font Name "Plex" (https://github.com/IBM/plex)
+Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. Source Serif 4 (https://github.com/adobe-fonts/source-serif)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
