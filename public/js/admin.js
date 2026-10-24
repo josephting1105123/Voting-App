@@ -38,6 +38,7 @@
   var state = null;
   var dead = false; // auth said "not found": stop reacting to anything
   var liveBusy = false;
+  var resultsShown = false; // results stay hidden until the host reveals them, so the screen can be projected
 
   var errorBox = $('admin-error');
   var pendingList = $('pending-list');
@@ -131,7 +132,11 @@
 
     $('total').textContent = pluralVotes(s.totalVoted) + ' so far';
     QV.renderResults($('results'), s.options, { options: s.options, totalVoted: s.totalVoted });
-    $('multi-note').hidden = !s.multi;
+    $('results').hidden = !resultsShown;
+    $('results-hidden-note').hidden = resultsShown;
+    $('multi-note').hidden = !s.multi || !resultsShown;
+    $('results-toggle').textContent = resultsShown ? 'Hide results' : 'Show results';
+    $('results-toggle').setAttribute('aria-expanded', resultsShown ? 'true' : 'false');
 
     renderPending(s);
     renderVoters(s);
@@ -233,7 +238,7 @@
           : [];
         picks = picks.filter(Boolean);
         li._sub.textContent = picks.join(', ');
-        li._sub.hidden = picks.length === 0;
+        li._sub.hidden = picks.length === 0 || !resultsShown;
       }
     );
 
@@ -243,6 +248,12 @@
   }
 
   /* ---- actions ---- */
+
+  // Reveal or hide the results (and each voter's picks); the choice resets on reload.
+  $('results-toggle').addEventListener('click', function () {
+    resultsShown = !resultsShown;
+    if (state) render(state);
+  });
 
   // The whole row toggles the switch (bigger tap target); the button's own click bubbles here.
   $('live-row').addEventListener('click', function () {

@@ -63,8 +63,12 @@
       </section>
 
       <section class="card" id="results-tile" aria-labelledby="results-heading">
-        <h2 id="results-heading">Results</h2>
+        <div class="list-item" id="results-head">
+          <h2 id="results-heading">Results</h2>
+          <button type="button" id="results-toggle" class="btn btn-secondary btn-sm" aria-controls="results" aria-expanded="false">Show results</button>
+        </div>
         <p class="muted" id="total"></p>
+        <p class="muted" id="results-hidden-note">Results are hidden. Show them when you're ready.</p>
         <div id="results"></div>
         <p class="muted small" id="multi-note" hidden>Voters can pick more than one option. Each percentage is the share of voters who picked that option, so they can add up to more than 100%.</p>
       </section>

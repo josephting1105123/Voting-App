@@ -1282,14 +1282,16 @@ textarea::placeholder {
   gap: 8px;
 }
 
-#pending-head {
+#pending-head,
+#results-head {
   min-height: 0;
   border-top: 0;
   margin-bottom: 10px;
   padding: 0;
 }
 
-#pending-head h2 {
+#pending-head h2,
+#results-head h2 {
   margin: 0;
 }
 
