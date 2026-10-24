@@ -5,19 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#111214" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#E3DCCE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#E3DCCE">
   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Admin - Quick Vote</title>
-  <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-page="admin">
-  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/" aria-label="Entropic Software Labs"><span class="mark" aria-hidden="true"><svg viewBox="76 82 360 360" fill="none" stroke="currentColor" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" focusable="false"><mask id="mark-liquid"><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104z" fill="#fff" stroke="none"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104" stroke="#000" stroke-width="60"/></mask><rect x="0" y="310" width="512" height="202" fill="currentColor" stroke="none" mask="url(#mark-liquid)"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104"/><path d="M196 104h120"/></svg></span><span class="wordmark-text"><span class="brand-short">Entropic</span><span class="brand-rest"> Software Labs</span></span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="1" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="false" tabindex="-1">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="true" tabindex="0">Admin</button></div><button type="button" id="theme-toggle" class="icon-btn" aria-label="Switch theme"><svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></div></div></header>
+  <header class="topbar"><div class="topbar-inner"><a class="wordmark" href="https://entropicsoftwarelabs.com/" aria-label="Entropic Software Labs"><span class="mark" aria-hidden="true"><svg viewBox="76 82 360 360" fill="none" stroke="currentColor" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" focusable="false"><mask id="mark-liquid"><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104z" fill="#fff" stroke="none"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104" stroke="#000" stroke-width="60"/></mask><rect x="0" y="310" width="512" height="202" fill="currentColor" stroke="none" mask="url(#mark-liquid)"/><path d="M216 104v104L128 372a32 32 0 0 0 28 48h200a32 32 0 0 0 28-48L296 208V104"/><path d="M196 104h120"/></svg></span><span class="wordmark-text"><span class="brand-short">Entropic</span><span class="brand-rest"> Software Labs</span></span></a><div class="topbar-controls"><div class="slider" id="role-slider" role="radiogroup" aria-label="Mode" data-index="1" data-c0="voter" data-c1="admin"><span class="slider-thumb" aria-hidden="true"></span><button type="button" role="radio" class="slider-opt" data-href="/" aria-checked="false" tabindex="-1">Voter</button><button type="button" role="radio" class="slider-opt" data-href="/create.html" aria-checked="true" tabindex="0">Admin</button></div></div></div></header>
   <div id="conn" class="conn" role="status" hidden>Connection lost. Reconnecting&hellip;</div>
   <main class="container">
     <div id="loading" class="card center" role="status">Loading&hellip;</div>
@@ -45,21 +43,7 @@
           <input id="share-link" class="input" type="text" readonly aria-label="Share link">
           <button type="button" id="copy-share" class="btn btn-secondary">Copy</button>
         </div>
-        <div class="notice notice-warn">
-          <p>Anyone with this page's link can run the poll. Don't share it.</p>
-          <button type="button" id="copy-admin" class="btn btn-secondary btn-sm">Copy admin link</button>
-        </div>
         <p class="muted small" id="keep-open-note">Keep this page open while people vote. Polls are deleted if the server restarts or nobody has a poll open for 15 minutes.</p>
-      </section>
-
-      <section class="card" id="live-tile" aria-label="Live results setting">
-        <div class="toggle-row" id="live-row">
-          <div class="toggle-text">
-            <span class="toggle-title" id="live-label">Live</span>
-            <span class="muted small" id="live-help">When on, voters see the results after they vote</span>
-          </div>
-          <button type="button" id="live-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="live-label" aria-describedby="live-help"></button>
-        </div>
       </section>
 
       <section class="card" id="results-tile" aria-labelledby="results-heading">
@@ -73,6 +57,7 @@
         <p class="muted small" id="multi-note" hidden>Voters can pick more than one option. Each percentage is the share of voters who picked that option, so they can add up to more than 100%.</p>
       </section>
 
+      <aside class="admin-side" aria-label="People">
       <section class="card" id="pending-tile" aria-labelledby="pending-heading">
         <div class="list-item" id="pending-head">
           <h2 id="pending-heading">Pending (0)</h2>
@@ -88,13 +73,40 @@
         <ul class="list" id="voters-list"></ul>
         <p class="muted small" id="rejected-note" hidden></p>
       </section>
+      </aside>
 
-      <section class="card" id="close-tile">
+      <section class="card" id="controls-tile" aria-label="Poll controls">
+        <div class="toggle-row" id="live-row">
+          <div class="toggle-text">
+            <span class="toggle-title" id="live-label">Live</span>
+            <span class="muted small" id="live-help">When on, voters see the results after they vote</span>
+          </div>
+          <button type="button" id="live-switch" class="switch" role="switch" aria-checked="false" aria-labelledby="live-label" aria-describedby="live-help"></button>
+        </div>
+        <hr class="controls-rule">
+        <div class="cohost-row">
+          <span class="toggle-title" id="cohost-label">Let others co-host the session</span>
+          <button type="button" id="cohost-open" class="btn btn-secondary btn-sm" aria-haspopup="dialog">Share</button>
+        </div>
+        <hr class="controls-rule">
         <p class="muted" id="closed-note" hidden>This poll is closed. No one can join or vote.</p>
         <button type="button" id="close-btn" class="btn btn-danger btn-block">Close poll</button>
       </section>
     </div>
   </main>
+  <dialog id="cohost-dialog" class="paper dialog" aria-labelledby="cohost-title">
+    <h2 id="cohost-title">Co-host this poll</h2>
+    <div class="notice notice-warn">
+      <p>Anyone with this link can run the poll, including closing it. Only share it with people you trust.</p>
+    </div>
+    <div class="copy-row cohost-link-row">
+      <button type="button" id="cohost-copy" class="btn btn-secondary swap-btn"><span class="swap-a">Copy</span><span class="swap-b" aria-hidden="true">Copied</span></button>
+      <input id="cohost-link" class="input" type="text" readonly aria-label="Co-host link" value="••••••••••••••••••••">
+      <button type="button" id="cohost-reveal" class="btn btn-secondary swap-btn" aria-pressed="false"><span class="swap-a">Show</span><span class="swap-b" aria-hidden="true">Hide</span></button>
+    </div>
+    <p class="sr-only" id="cohost-status" role="status" aria-live="polite"></p>
+    <div class="dialog-actions"><button type="button" id="cohost-done" class="btn btn-primary btn-sm">Done</button></div>
+  </dialog>
   <div id="admin-error" class="toast" role="alert" hidden>
     <span id="admin-error-text" class="toast-text"></span>
     <button type="button" id="admin-error-close" class="toast-close" aria-label="Dismiss message"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
