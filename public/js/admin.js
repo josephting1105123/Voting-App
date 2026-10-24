@@ -51,6 +51,11 @@
   var editDialog = $('edit-dialog');
   var closeDialog = $('close-dialog');
   var approveAllBtn = $('approve-all');
+  var PENDING_VISIBLE = 3; // rows shown in the card; the rest live in the dialog
+  var pendingMoreBtn = $('pending-more');
+  var pendingDialog = $('pending-dialog');
+  var pendingDialogList = $('pending-dialog-list');
+  var pendingDialogApproveAll = $('pending-dialog-approve-all');
 
   // Errors show in a fixed bottom toast so they're visible wherever the host has scrolled to.
   // It hides itself after 6 seconds, or when dismissed; a newer message restarts the timer.
@@ -165,28 +170,38 @@
   }
 
   function renderPending(s) {
-    $('pending-heading').textContent = 'Pending (' + s.pending.length + ')';
-    $('pending-empty').hidden = s.pending.length > 0;
-    approveAllBtn.hidden = s.pending.length < 2;
-    approveAllBtn.textContent = 'Approve all (' + s.pending.length + ')';
-    QV.reconcile(
-      pendingList,
-      s.pending,
-      function (p) {
-        return p.id;
-      },
-      createPendingItem,
-      function (li, p) {
-        li._nameEl.textContent = p.name;
-        li._avatar.textContent = (Array.from(p.name)[0] || '?').toUpperCase();
-      }
-    );
+    var n = s.pending.length;
+    var heading = 'Pending (' + n + ')';
+    var approveAllText = 'Approve all (' + n + ')';
+    $('pending-heading').textContent = heading;
+    $('pending-empty').hidden = n > 0;
+    approveAllBtn.hidden = n < 2;
+    approveAllBtn.textContent = approveAllText;
+    pendingMoreBtn.hidden = n <= PENDING_VISIBLE;
+    pendingMoreBtn.textContent = 'Show ' + (n - PENDING_VISIBLE) + ' more waiting';
+    QV.reconcile(pendingList, s.pending.slice(0, PENDING_VISIBLE), pendingKey, createPendingItem, updatePendingItem);
+
+    $('pending-dialog-heading').textContent = heading;
+    $('pending-dialog-empty').hidden = n > 0;
+    pendingDialogApproveAll.hidden = n < 2;
+    pendingDialogApproveAll.textContent = approveAllText;
+    QV.reconcile(pendingDialogList, s.pending, pendingKey, createPendingItem, updatePendingItem);
+    if (n === 0 && pendingDialog.open) pendingDialog.close();
+  }
+
+  function pendingKey(p) {
+    return p.id;
+  }
+
+  function updatePendingItem(li, p) {
+    li._nameEl.textContent = p.name;
+    li._avatar.textContent = (Array.from(p.name)[0] || '?').toUpperCase();
   }
 
   function createPendingItem(p) {
     var nameEl = el('span', { class: 'item-name' });
     var avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
-    var approveBtn = el('button', { type: 'button', class: 'btn btn-primary btn-sm' }, 'Approve');
+    var approveBtn = el('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, 'Approve');
     var rejectBtn = el('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, 'Reject');
     approveBtn.setAttribute('aria-label', 'Approve ' + p.name);
     rejectBtn.setAttribute('aria-label', 'Reject ' + p.name);
@@ -372,13 +387,28 @@
   wireDialog(editDialog);
   wireDialog(closeDialog);
 
-  approveAllBtn.addEventListener('click', function () {
-    approveAllBtn.disabled = true;
+  function approveAll(btn) {
+    btn.disabled = true;
     QV.emitAck(socket, 'admin:approveAll', {}).then(function (res) {
-      approveAllBtn.disabled = false;
+      btn.disabled = false;
       setError(res.ok ? '' : res.error || 'Could not approve everyone.');
     });
+  }
+
+  approveAllBtn.addEventListener('click', function () {
+    approveAll(approveAllBtn);
   });
+  pendingDialogApproveAll.addEventListener('click', function () {
+    approveAll(pendingDialogApproveAll);
+  });
+
+  pendingMoreBtn.addEventListener('click', function () {
+    if (!pendingDialog.open) pendingDialog.showModal();
+  });
+  $('pending-dialog-close').addEventListener('click', function () {
+    pendingDialog.close();
+  });
+  wireDialog(pendingDialog);
 
   function wireCopy(button, getText, source) {
     button.addEventListener('click', function () {

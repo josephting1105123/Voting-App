@@ -1238,6 +1238,7 @@ textarea::placeholder {
 }
 
 #pending-head,
+#pending-dialog-head,
 #results-head {
   min-height: 0;
   border-top: 0;
@@ -1246,8 +1247,60 @@ textarea::placeholder {
 }
 
 #pending-head h2,
+#pending-dialog-head h2,
 #results-head h2 {
   margin: 0;
+}
+
+/* pending rows: avatar + name + Approve + Reject on one line */
+.pending-rows .list-item {
+  flex-wrap: nowrap;
+}
+
+.pending-rows .item-main {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+}
+
+.pending-rows .item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-rows .item-actions {
+  flex: none;
+  gap: 6px;
+}
+
+.pending-rows .item-actions .btn-sm {
+  padding: 0 12px;
+}
+
+@media (max-width: 420px) {
+  .pending-rows .item-actions .btn-sm {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
+  .pending-rows .avatar {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+#pending-more {
+  margin-top: 12px;
+}
+
+.pending-dialog {
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+#pending-dialog-approve-all {
+  margin-top: 12px;
 }
 
 /* ---- admin ---- */
@@ -1438,7 +1491,7 @@ textarea::placeholder {
 
   .bento {
     display: grid;
-    grid-template-columns: 530px minmax(0, 1fr) 300px;
+    grid-template-columns: 430px minmax(0, 1fr) 400px;
     gap: 16px;
     align-items: stretch;
     grid-template-areas:
@@ -1770,6 +1823,29 @@ textarea::placeholder {
   font-size: 0.9375rem;
   font-weight: 500;
   text-align: center;
+}
+
+/* voter page: no top bar, card centered in the viewport */
+body[data-page='vote'] .conn {
+  top: 0;
+}
+
+body[data-page='vote'] .container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+body[data-page='vote'] #view {
+  width: 100%;
+}
+
+body[data-page='vote'] #view > .card {
+  margin-bottom: 0;
 }
 
 /* Admin error toast: a slip of paper fixed to the bottom of the viewport so it is seen wherever the host has scrolled to. */

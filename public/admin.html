@@ -65,7 +65,8 @@
           <button type="button" id="approve-all" class="btn btn-primary btn-sm" hidden>Approve all</button>
         </div>
         <p class="muted" id="pending-empty">No one waiting</p>
-        <ul class="list" id="pending-list"></ul>
+        <ul class="list pending-rows" id="pending-list"></ul>
+        <button type="button" id="pending-more" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" hidden></button>
       </section>
 
       <section class="card" id="voters-tile" aria-labelledby="voters-heading">
@@ -103,6 +104,15 @@
       </section>
     </div>
   </main>
+  <dialog id="pending-dialog" class="paper dialog pending-dialog" aria-labelledby="pending-dialog-heading">
+    <div class="list-item" id="pending-dialog-head">
+      <h2 id="pending-dialog-heading">Pending (0)</h2>
+      <button type="button" id="pending-dialog-close" class="btn btn-secondary btn-sm btn-icon" aria-label="Close"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <p class="muted" id="pending-dialog-empty" hidden>No one waiting</p>
+    <ul class="list pending-rows" id="pending-dialog-list"></ul>
+    <button type="button" id="pending-dialog-approve-all" class="btn btn-primary btn-block" hidden>Approve all</button>
+  </dialog>
   <dialog id="cohost-dialog" class="paper dialog" aria-labelledby="cohost-title">
     <h2 id="cohost-title">Co-host this poll</h2>
     <div class="notice notice-warn">
