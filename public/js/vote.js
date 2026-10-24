@@ -47,6 +47,7 @@
   var ANNOUNCE = {
     pending: 'Waiting for the host to let you in.',
     rejected: 'Your request was declined.',
+    removed: 'The host removed you from this poll.',
     ballot: 'You are in. Choose your answer.',
     voted: 'Vote recorded.',
     closed: 'This poll is closed.',
@@ -68,7 +69,10 @@
   }
 
   function sameName(a, b) {
-    return a.normalize('NFC').toLowerCase() === b.normalize('NFC').toLowerCase();
+    function nameKey(s) {
+      return s.normalize('NFKC').replace(/[‌‍]/g, '').toLowerCase().replace(/\s+/g, '').toUpperCase();
+    }
+    return nameKey(a) === nameKey(b);
   }
 
   function resume(stored) {
@@ -146,6 +150,7 @@
   /* ---- rendering ---- */
 
   function modeOf(s) {
+    if (s.status === 'removed') return 'removed';
     if (s.status === 'rejected') return 'rejected';
     if (s.hasVoted) return 'voted';
     if (s.closed) return 'closed';
@@ -154,7 +159,8 @@
   }
 
   function render(s) {
-    if (s.status === 'rejected') QV.clearVoterToken(pin);
+    var final = s.status === 'rejected' || s.status === 'removed';
+    if (final) QV.clearVoterToken(pin);
     var mode = modeOf(s);
     if (current.mode !== mode) {
       QV.clear(view);
@@ -163,8 +169,8 @@
       srStatus.textContent = ANNOUNCE[mode];
     }
     current.update(s);
-    // Declined is final: no resume, no re-join on reconnect.
-    if (s.status === 'rejected') fatal = true;
+    // Declined or removed is final: no resume, no re-join on reconnect.
+    if (final) fatal = true;
   }
 
   function showError(message, opts) {
@@ -227,6 +233,19 @@
           { class: 'card center' },
           el('h1', null, 'Your request was declined'),
           el('p', { class: 'muted' }, 'The host did not let you into this poll.'),
+          el('a', { class: 'btn btn-primary', href: '/' }, 'Back to home')
+        )
+      );
+      return function () {};
+    },
+
+    removed: function () {
+      view.appendChild(
+        el(
+          'div',
+          { class: 'card center' },
+          el('h1', null, 'You were removed from this poll'),
+          el('p', { class: 'muted' }, 'The host took you out of this poll.'),
           el('a', { class: 'btn btn-primary', href: '/' }, 'Back to home')
         )
       );

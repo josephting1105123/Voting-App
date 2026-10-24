@@ -661,3 +661,39 @@ test('CSP connect-src is built from a validated Host header', async () => {
     await app.close();
   }
 });
+
+test('admin:remove takes an approved voter out and tells them', async () => {
+  const app = await start(0);
+  const sockets = [];
+  try {
+    const { pin, adminToken } = (await postJson(`${app.url}/api/polls`, { title: 'Room', options: ['a', 'b'] })).body;
+    const admin = await open(app.url);
+    sockets.push(admin);
+    const adminState = track(admin, 'admin:state');
+    assert.equal((await ask(admin, 'admin:auth', { token: adminToken })).ok, true);
+
+    const s = await open(app.url);
+    sockets.push(s);
+    const state = track(s, 'voter:state');
+    assert.equal((await ask(s, 'voter:join', { pin, name: 'Guest' })).ok, true);
+    const pending = await adminState.waitFor((a) => a.pending.length === 1);
+    const voterId = pending.pending[0].id;
+    assert.equal((await ask(admin, 'admin:decide', { voterId, approve: true })).ok, true);
+    await adminState.waitFor((a) => a.approved.length === 1);
+    await state.waitFor((v) => v.status === 'approved');
+
+    assert.equal((await ask(admin, 'admin:remove', { voterId })).ok, true);
+    await state.waitFor((v) => v.status === 'removed');
+    await adminState.waitFor((a) => a.approved.length === 0);
+
+    // Gone: removing again fails, and a stranger can't remove anyone.
+    assert.equal((await ask(admin, 'admin:remove', { voterId })).ok, false);
+    assert.equal((await ask(admin, 'admin:remove', {})).ok, false);
+    const stranger = await open(app.url);
+    sockets.push(stranger);
+    assert.equal((await ask(stranger, 'admin:remove', { voterId })).ok, false);
+  } finally {
+    for (const k of sockets) k.close();
+    await app.close();
+  }
+});

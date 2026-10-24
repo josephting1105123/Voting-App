@@ -5,6 +5,14 @@
   var $ = QV.$;
   var el = QV.el;
 
+  // Built at runtime so an engine without Unicode property escapes falls back instead of failing to parse the page.
+  var NOT_WORD;
+  try {
+    NOT_WORD = new RegExp('[^\\p{L}\\p{N}\\p{M}]', 'gu');
+  } catch (e) {
+    NOT_WORD = /[\s!-\/:-@\[-`{-~]/g;
+  }
+
   var token = location.hash.slice(1).trim();
   var panels = { loading: $('loading'), notFound: $('not-found'), admin: $('admin') };
 
@@ -198,9 +206,161 @@
     return li;
   }
 
+  // Names that only differ by spaces or case can't both join (the server refuses them). This looser key also
+  // ignores punctuation and symbols, so "John." and "John!" are flagged for the host to check.
+  function lookKey(name) {
+    return name.normalize('NFKC').replace(/[\u200C\u200D]/g, '').toUpperCase().replace(NOT_WORD, '');
+  }
+
+  // Lookalike names first (grouped together), then people who haven't voted, then people who have.
+  function sortVoters(list) {
+    var keys = list.map(function (v) {
+      return lookKey(v.name);
+    });
+    var seen = new Map();
+    keys.forEach(function (k) {
+      if (k) seen.set(k, (seen.get(k) || 0) + 1);
+    });
+    var dupIds = new Set();
+    var items = list.map(function (v, i) {
+      var dup = keys[i] !== '' && seen.get(keys[i]) >= 2;
+      if (dup) dupIds.add(v.id);
+      return { v: v, i: i, key: keys[i], rank: dup ? 0 : v.hasVoted ? 2 : 1 };
+    });
+    items.sort(function (a, b) {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      if (a.rank === 0 && a.key !== b.key) return a.key < b.key ? -1 : 1;
+      return a.i - b.i;
+    });
+    var rows = items.map(function (it) {
+      return it.v;
+    });
+    var groups = rows.filter(function (v) {
+      return dupIds.has(v.id);
+    });
+    return { rows: rows, dupIds: dupIds, groups: groups };
+  }
+
+  function voterKey(v) {
+    return v.id;
+  }
+
+  // Shared by the card and the dialog; `withRemove` adds the Remove button and keeps the row on one line.
+  function createVoterRow(withRemove) {
+    var nameEl = el('span', { class: 'item-name' });
+    var avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
+    var badge = el('span', { class: 'badge' });
+    var dupEl = el('span', { class: 'sr-only' });
+    var main = el('div', { class: 'item-main voter-main' }, avatar, nameEl, dupEl, badge);
+    var li = el('li', { class: 'list-item voter-row' + (withRemove ? ' voter-row-dialog' : '') }, main);
+    li._nameEl = nameEl;
+    li._avatar = avatar;
+    li._badge = badge;
+    li._dupEl = dupEl;
+    if (withRemove) {
+      var removeBtn = el('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, 'Remove');
+      li.appendChild(el('div', { class: 'item-actions' }, removeBtn));
+      li._removeBtn = removeBtn;
+      removeBtn.addEventListener('click', function () {
+        removeVoter(li);
+      });
+    } else {
+      var sub = el('p', { class: 'item-sub muted small', hidden: true });
+      li.appendChild(sub);
+      li._sub = sub;
+    }
+    return li;
+  }
+
+  function updateVoterRow(li, v, isDup) {
+    li._voter = v;
+    li._nameEl.textContent = v.name;
+    li._nameEl.title = v.name;
+    li._avatar.textContent = (Array.from(v.name)[0] || '?').toUpperCase();
+    li._avatar.className = isDup ? 'avatar avatar-dup' : 'avatar';
+    li._dupEl.textContent = isDup ? ' (possible duplicate)' : '';
+    li._badge.textContent = v.hasVoted ? 'Voted' : 'Not yet';
+    li._badge.className = v.hasVoted ? 'badge badge-ok' : 'badge';
+    if (li._removeBtn) {
+      li._removeBtn.setAttribute('aria-label', 'Remove ' + v.name);
+      li._removeBtn.disabled = removing.has(v.id);
+    }
+  }
+
+  // Ids with a remove request in flight, so both of a lookalike's buttons lock together.
+  var removing = new Set();
+  // Where the removed row sat, so focus can land on its neighbour once the new state arrives.
+  var pendingFocus = null;
+
+  function removeVoter(li) {
+    var v = li._voter;
+    if (!v || removing.has(v.id)) return;
+    var text;
+    if (v.hasVoted && Array.isArray(v.choices)) {
+      text = 'Remove ' + v.name + ' from this poll? Their vote will come out of the results.';
+    } else if (v.hasVoted) {
+      text = 'Remove ' + v.name + " from this poll? This poll is anonymous, so their vote can't be traced and stays in the results.";
+    } else {
+      text = 'Remove ' + v.name + ' from this poll?';
+    }
+    if (!window.confirm(text)) return;
+    var list = li.parentNode;
+    removing.add(v.id);
+    pendingFocus = { id: v.id, listId: list.id, index: Array.prototype.indexOf.call(list.children, li) };
+    Array.prototype.forEach.call(document.querySelectorAll('#voters-dialog .voter-row'), function (row) {
+      if (row._voter && row._voter.id === v.id) row._removeBtn.disabled = true;
+    });
+    QV.emitAck(socket, 'admin:remove', { voterId: v.id }).then(function (res) {
+      if (res.ok) {
+        setVotersError('');
+        $('voters-status').textContent = 'Removed ' + v.name;
+      } else {
+        var msg = res.error || 'Could not remove that voter.';
+        removing.delete(v.id);
+        pendingFocus = null;
+        setVotersError(msg);
+        setError(msg);
+        Array.prototype.forEach.call(document.querySelectorAll('#voters-dialog .voter-row'), function (row) {
+          if (row._voter && row._voter.id === v.id) row._removeBtn.disabled = false;
+        });
+      }
+    });
+  }
+
+  // After a removal the clicked button is gone: move focus to whichever row now sits at the same spot.
+  function restoreFocus(rows) {
+    if (!pendingFocus) return;
+    var gone = !rows.some(function (v) {
+      return v.id === pendingFocus.id;
+    });
+    if (!gone) return;
+    removing.delete(pendingFocus.id);
+    var target = null;
+    var list = $(pendingFocus.listId);
+    var row = list && list.children[pendingFocus.index];
+    if (row && row._removeBtn && !row._removeBtn.disabled) target = row._removeBtn;
+    pendingFocus = null;
+    if (!$('voters-dialog').open) return;
+    (target || $('voters-done')).focus();
+  }
+
+  function setVotersError(message) {
+    var p = $('voters-dialog-error');
+    p.textContent = message;
+    p.hidden = !message;
+  }
+
   function renderVoters(s) {
-    $('voters-heading').textContent = 'Voters (' + s.approved.length + ')';
-    $('voters-empty').hidden = s.approved.length > 0;
+    var sorted = sortVoters(s.approved);
+    var count = s.approved.length;
+    $('voters-heading').textContent = 'Voters (' + count + ')';
+    $('voters-empty').hidden = count > 0;
+    $('voters-open').hidden = count === 0;
+    $('voters-tile').classList.toggle('is-openable', count > 0);
+
+    var dupNote = $('voters-dup-note');
+    dupNote.hidden = sorted.groups.length === 0;
+    dupNote.textContent = sorted.groups.length + (sorted.groups.length === 1 ? ' name looks alike' : ' names look alike');
 
     var optionText = new Map();
     s.options.forEach(function (o) {
@@ -209,27 +369,13 @@
 
     QV.reconcile(
       votersList,
-      s.approved,
-      function (v) {
-        return v.id;
-      },
+      sorted.rows,
+      voterKey,
       function () {
-        var nameEl = el('span', { class: 'item-name' });
-        var avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
-        var badge = el('span', { class: 'badge' });
-        var sub = el('p', { class: 'item-sub muted small', hidden: true });
-        var li = el('li', { class: 'list-item' }, el('div', { class: 'item-main' }, avatar, nameEl, badge, sub));
-        li._nameEl = nameEl;
-        li._avatar = avatar;
-        li._badge = badge;
-        li._sub = sub;
-        return li;
+        return createVoterRow(false);
       },
       function (li, v) {
-        li._nameEl.textContent = v.name;
-        li._avatar.textContent = (Array.from(v.name)[0] || '?').toUpperCase();
-        li._badge.textContent = v.hasVoted ? 'Voted' : 'Not yet';
-        li._badge.className = v.hasVoted ? 'badge badge-ok' : 'badge';
+        updateVoterRow(li, v, sorted.dupIds.has(v.id));
         // Anonymous polls never send `choices`, so there is nothing to show.
         var picks = Array.isArray(v.choices)
           ? v.choices.map(function (id) {
@@ -241,6 +387,36 @@
         li._sub.hidden = picks.length === 0 || !resultsShown;
       }
     );
+
+    // The dialog stays live while open: same rows, plus a Remove button on each.
+    $('voters-dialog-title').textContent = 'Voters (' + count + ')';
+    $('all-heading').textContent = 'All participants (' + count + ')';
+    $('dup-empty').hidden = sorted.groups.length > 0;
+    $('all-empty').hidden = count > 0;
+    [
+      [$('dup-list'), sorted.groups],
+      [$('all-list'), sorted.rows]
+    ].forEach(function (pair) {
+      QV.reconcile(
+        pair[0],
+        pair[1],
+        voterKey,
+        function () {
+          return createVoterRow(true);
+        },
+        function (li, v) {
+          updateVoterRow(li, v, sorted.dupIds.has(v.id));
+        }
+      );
+    });
+    restoreFocus(sorted.rows);
+
+    // Show exactly four rows however tall they are (picks make some rows taller); the CSS height is the fallback.
+    if (votersList.children.length > 4) {
+      votersList.style.maxHeight = votersList.children[4].offsetTop - votersList.children[0].offsetTop + 'px';
+    } else {
+      votersList.style.maxHeight = '';
+    }
 
     var note = $('rejected-note');
     note.hidden = s.rejectedCount === 0;
@@ -391,4 +567,28 @@
   });
 
   cohostDialog.addEventListener('close', resetCohost);
+
+  var votersDialog = $('voters-dialog');
+
+  // The whole card opens the manager (the Manage button's click bubbles here), unless the host is selecting text.
+  $('voters-tile').addEventListener('click', function (e) {
+    if (!state || state.approved.length === 0) return;
+    var viaButton = e.target.closest && e.target.closest('#voters-open');
+    var sel = window.getSelection ? window.getSelection().toString() : '';
+    if (sel && !viaButton) return;
+    setVotersError('');
+    if (!votersDialog.open) votersDialog.showModal();
+  });
+
+  $('voters-done').addEventListener('click', function () {
+    votersDialog.close();
+  });
+
+  votersDialog.addEventListener('click', function (e) {
+    if (e.target !== votersDialog || e.detail > 1) return;
+    var r = votersDialog.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+      votersDialog.close();
+    }
+  });
 })();

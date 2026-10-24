@@ -46,6 +46,12 @@ function uniqueKey(text) {
   return text.normalize('NFKC').replace(JOINERS, '').toLowerCase();
 }
 
+// Uniqueness key for voter names: uniqueKey plus all whitespace removed and upper-cased, so "Ann Lee",
+// "annlee" and "ANN  LEE" are the same name.
+function nameKey(text) {
+  return uniqueKey(text).replace(/\s+/gu, '').toUpperCase();
+}
+
 function createStore(options = {}) {
   const now = typeof options.now === 'function' ? options.now : () => Date.now();
   const L = Object.freeze({ ...LIMITS, ...(options.limits || {}) });
@@ -161,7 +167,7 @@ function createStore(options = {}) {
       pendingCount: 0,
       totalVoted: 0,
       rejectedCount: 0,
-      nameIndex: new Map(), // uniqueKey(name) -> voter, pending + approved only
+      nameIndex: new Map(), // nameKey(name) -> voter, pending + approved only
     };
 
     polls.set(poll.id, poll);
@@ -194,7 +200,7 @@ function createStore(options = {}) {
     if (!poll) return fail('No poll found with that PIN');
     if (poll.closed) return fail('This poll is closed');
 
-    const existing = poll.nameIndex.get(uniqueKey(clean.text));
+    const existing = poll.nameIndex.get(nameKey(clean.text));
     if (existing) {
       // Same key = same browser retrying. That includes after approval: the retry can cross the approval.
       if (key !== null && existing.joinKey === key && (existing.status === 'pending' || existing.status === 'approved')) {
@@ -219,7 +225,7 @@ function createStore(options = {}) {
       joinKey: key,
     };
     poll.voters.set(id, voter);
-    poll.nameIndex.set(uniqueKey(voter.name), voter);
+    poll.nameIndex.set(nameKey(voter.name), voter);
     poll.activeCount += 1;
     poll.pendingCount += 1;
     totalVoters += 1;
@@ -244,12 +250,40 @@ function createStore(options = {}) {
       voter.status = 'rejected';
       poll.activeCount -= 1;
       poll.rejectedCount += 1;
-      poll.nameIndex.delete(uniqueKey(voter.name));
+      poll.nameIndex.delete(nameKey(voter.name));
       poll.voters.delete(voter.id);
       byVoterToken.delete(voter.token);
       totalVoters -= 1;
     }
     return { ok: true, poll, voter };
+  }
+
+  // Removes an approved voter (pending voters are rejected instead). Frees their slot and name. If they voted
+  // and the poll keeps choices, their picks come out of the tallies; an anonymous poll never knew their picks,
+  // so the vote stays counted (keptVote: true). Returns the voter (status 'removed') so the caller can tell them.
+  function removeVoter(adminToken, voterId) {
+    const poll = getByAdminToken(adminToken);
+    if (!poll) return fail('Poll not found');
+    const voter = typeof voterId === 'string' ? poll.voters.get(voterId) : undefined;
+    if (!voter) return fail('Voter not found');
+    if (voter.status !== 'approved') return fail('Only approved voters can be removed');
+
+    let keptVote = false;
+    if (voter.hasVoted) {
+      if (Array.isArray(voter.choices)) {
+        for (const id of voter.choices) poll.options[id].count -= 1;
+        poll.totalVoted -= 1;
+      } else {
+        keptVote = true;
+      }
+    }
+    voter.status = 'removed';
+    poll.activeCount -= 1;
+    poll.nameIndex.delete(nameKey(voter.name));
+    poll.voters.delete(voter.id);
+    byVoterToken.delete(voter.token);
+    totalVoters -= 1;
+    return { ok: true, poll, voter, keptVote };
   }
 
   // Approves everyone currently pending. They already count toward the active cap, so this only flips status.
@@ -355,7 +389,7 @@ function createStore(options = {}) {
       hasVoted: voter.hasVoted,
       myChoices: !poll.anonymous && voter.choices ? voter.choices.slice() : null,
       results:
-        voter.hasVoted && poll.live
+        voter.status === 'approved' && voter.hasVoted && poll.live
           ? { options: poll.options.map((o) => ({ id: o.id, count: o.count })), totalVoted: poll.totalVoted }
           : null,
     };
@@ -391,6 +425,7 @@ function createStore(options = {}) {
     getVoterByToken,
     decide,
     approveAll,
+    removeVoter,
     setLive,
     closePoll,
     vote,

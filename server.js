@@ -345,6 +345,16 @@ function attachSockets(io, store, limiter) {
     );
 
     on(
+      'admin:remove',
+      adminCommand((token, data) => {
+        if (typeof data.voterId !== 'string') return { ok: false, error: 'Invalid request' };
+        const result = store.removeVoter(token, data.voterId);
+        // The removed voter is told; if their vote came out of the tallies, voters who can see results update too.
+        return result.ok ? { ...result, notify: { admin: true, voters: [result.voter], votedVoters: result.voter.hasVoted && !result.keptVote } } : result;
+      })
+    );
+
+    on(
       'admin:setLive',
       adminCommand((token, data) => {
         if (typeof data.live !== 'boolean') return { ok: false, error: 'Invalid request' };

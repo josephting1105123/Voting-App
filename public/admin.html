@@ -68,7 +68,11 @@
       </section>
 
       <section class="card" id="voters-tile" aria-labelledby="voters-heading">
-        <h2 id="voters-heading">Voters (0)</h2>
+        <div class="list-item" id="voters-head">
+          <h2 id="voters-heading">Voters (0)</h2>
+          <button type="button" id="voters-open" class="btn btn-secondary btn-sm" aria-haspopup="dialog">Manage</button>
+        </div>
+        <p class="small" id="voters-dup-note" hidden></p>
         <p class="muted" id="voters-empty">No approved voters yet</p>
         <ul class="list" id="voters-list"></ul>
         <p class="muted small" id="rejected-note" hidden></p>
@@ -108,6 +112,22 @@
     </div>
     <p class="sr-only" id="cohost-status" role="status" aria-live="polite"></p>
     <div class="dialog-actions"><button type="button" id="cohost-done" class="btn btn-primary btn-sm">Done</button></div>
+  </dialog>
+  <dialog id="voters-dialog" class="paper dialog voters-dialog" aria-labelledby="voters-dialog-title">
+    <h2 id="voters-dialog-title">Voters (0)</h2>
+    <section class="voters-section" aria-labelledby="dup-heading">
+      <h3 id="dup-heading">Possible duplicates</h3>
+      <p class="muted" id="dup-empty">No names look alike.</p>
+      <ul class="list" id="dup-list"></ul>
+    </section>
+    <section class="voters-section" aria-labelledby="all-heading">
+      <h3 id="all-heading">All participants (0)</h3>
+      <p class="muted" id="all-empty">No approved voters yet</p>
+      <ul class="list" id="all-list"></ul>
+    </section>
+    <p class="small voters-dialog-error" id="voters-dialog-error" role="alert" hidden></p>
+    <p class="sr-only" id="voters-status" role="status" aria-live="polite"></p>
+    <div class="dialog-actions"><button type="button" id="voters-done" class="btn btn-primary btn-sm">Done</button></div>
   </dialog>
   <div id="admin-error" class="toast" role="alert" hidden>
     <span id="admin-error-text" class="toast-text"></span>

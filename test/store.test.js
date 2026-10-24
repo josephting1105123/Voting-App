@@ -685,3 +685,94 @@ test('poll and voter ids are 32 hex chars; totalVoted is a counter shared by bot
   const carol = [...poll.poll.voters.values()].find((v) => v.name === 'Carol');
   assert.equal(store.voterView(poll.poll, carol).results, null);
 });
+
+// ---- name keys and removing voters ----
+
+test('names collide after removing spaces and ignoring case', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  addVoter(store, poll, 'Alice Smith');
+  assert.equal(store.joinPoll(poll.pin, 'alicesmith').ok, false);
+  assert.equal(store.joinPoll(poll.pin, 'A L I C E SMITH').ok, false);
+  assert.equal(store.joinPoll(poll.pin, 'ALICE\u00A0SMITH').ok, false);
+  assert.equal(store.joinPoll(poll.pin, 'Alice Smyth').ok, true);
+});
+
+test('removeVoter: approved voter who has not voted', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const alice = addVoter(store, poll, 'Alice');
+  addVoter(store, poll, 'Bob');
+  assert.equal(poll.poll.activeCount, 2);
+
+  const r = store.removeVoter(poll.adminToken, alice.voterId);
+  assert.equal(r.ok, true);
+  assert.equal(r.keptVote, false);
+  assert.equal(r.voter.status, 'removed');
+  assert.equal(poll.poll.activeCount, 1);
+  assert.equal(store.getVoterByToken(alice.voterToken), null);
+  assert.equal(store.adminView(poll.poll).approved.some((v) => v.name === 'Alice'), false);
+  assert.equal(store.voterView(poll.poll, r.voter).status, 'removed');
+  assert.deepEqual(store.voterView(poll.poll, r.voter).options, []);
+  assert.equal(store.joinPoll(poll.pin, 'a lice').ok, true); // the name is free again
+});
+
+test('removeVoter takes a recorded vote out of the tallies', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { multi: true });
+  const alice = addVoter(store, poll, 'Alice');
+  const bob = addVoter(store, poll, 'Bob');
+  assert.equal(store.vote(alice.voterToken, [0, 2]).ok, true);
+  assert.equal(store.vote(bob.voterToken, [0]).ok, true);
+  store.setLive(poll.adminToken, true);
+
+  const r = store.removeVoter(poll.adminToken, alice.voterId);
+  assert.equal(r.ok, true);
+  assert.equal(r.keptVote, false);
+  const view = store.adminView(poll.poll);
+  assert.deepEqual(view.options.map((o) => o.count), [1, 0, 0]);
+  assert.equal(view.totalVoted, 1);
+  // A removed voter who had voted never sees results.
+  assert.equal(store.voterView(poll.poll, r.voter).results, null);
+});
+
+test('removeVoter in an anonymous poll keeps the vote counted', () => {
+  const { store } = setup();
+  const poll = newPoll(store, { anonymous: true });
+  const alice = addVoter(store, poll, 'Alice');
+  assert.equal(store.vote(alice.voterToken, [1]).ok, true);
+
+  const r = store.removeVoter(poll.adminToken, alice.voterId);
+  assert.equal(r.ok, true);
+  assert.equal(r.keptVote, true);
+  const view = store.adminView(poll.poll);
+  assert.deepEqual(view.options.map((o) => o.count), [0, 1, 0]);
+  assert.equal(view.totalVoted, 1);
+});
+
+test('removeVoter refuses pending voters, unknown ids and wrong tokens', () => {
+  const { store } = setup();
+  const poll = newPoll(store);
+  const pending = addVoter(store, poll, 'Alice', false);
+  const approved = addVoter(store, poll, 'Bob');
+
+  assert.match(store.removeVoter(poll.adminToken, pending.voterId).error, /approved/i);
+  assert.match(store.removeVoter(poll.adminToken, 'nope').error, /not found/i);
+  assert.match(store.removeVoter(poll.adminToken, 42).error, /not found/i);
+  assert.match(store.removeVoter('wrong', approved.voterId).error, /Poll not found/);
+  assert.equal(store.removeVoter(poll.adminToken, approved.voterId).ok, true);
+  // Already gone.
+  assert.match(store.removeVoter(poll.adminToken, approved.voterId).error, /not found/i);
+});
+
+test('removeVoter frees the per-poll and global slots', () => {
+  const store = createStore({ limits: { VOTERS_MAX: 1, GLOBAL_VOTERS_MAX: 1 } });
+  const poll = newPoll(store);
+  const alice = addVoter(store, poll, 'Alice');
+  assert.match(store.joinPoll(poll.pin, 'Bob').error, /busy|full/i);
+  assert.equal(store.stats().voters, 1);
+
+  assert.equal(store.removeVoter(poll.adminToken, alice.voterId).ok, true);
+  assert.equal(store.stats().voters, 0);
+  assert.equal(store.joinPoll(poll.pin, 'Bob').ok, true);
+});
