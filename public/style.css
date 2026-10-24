@@ -1239,7 +1239,8 @@ textarea::placeholder {
 
 #pending-head,
 #pending-dialog-head,
-#results-head {
+#results-head,
+#voters-head {
   min-height: 0;
   border-top: 0;
   margin-bottom: 10px;
@@ -1248,8 +1249,22 @@ textarea::placeholder {
 
 #pending-head h2,
 #pending-dialog-head h2,
-#results-head h2 {
+#results-head h2,
+#voters-head h2 {
   margin: 0;
+}
+
+/* voter rows: long names truncate with an ellipsis so the badge stays on the line */
+.voter-main {
+  flex-wrap: nowrap;
+}
+
+.voter-main .item-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* pending rows: avatar + name + Approve + Reject on one line */
@@ -1267,6 +1282,46 @@ textarea::placeholder {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.voter-main .badge {
+  flex: none;
+}
+
+.voter-row-dialog {
+  flex-wrap: nowrap;
+}
+
+.voter-row-dialog .item-actions {
+  flex: none;
+}
+
+.avatar-dup {
+  border-color: var(--error);
+  color: var(--error-text);
+  background: var(--error-muted);
+}
+
+#voters-tile.is-openable {
+  cursor: pointer;
+}
+
+#voters-tile.is-openable:hover {
+  border-color: var(--outline);
+}
+
+#voters-dup-note {
+  margin: 0 0 6px;
+  color: var(--error-text);
+}
+
+/* four 56px rows and their rules, then scroll */
+#voters-list {
+  position: relative;
+  max-height: 228px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .pending-rows .item-actions {
@@ -1409,6 +1464,31 @@ textarea::placeholder {
 
 .dialog .notice {
   margin: 12px 0 16px;
+}
+
+.voters-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+
+.voters-dialog h3 {
+  margin: 18px 0 4px;
+}
+
+.voters-dialog .voters-section:first-of-type h3 {
+  margin-top: 12px;
+}
+
+.voters-dialog .voters-section + .voters-section {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: 1px solid var(--divider);
+}
+
+.voters-dialog-error {
+  margin: 12px 0 0;
+  color: var(--error-text);
 }
 
 .dialog-actions {
