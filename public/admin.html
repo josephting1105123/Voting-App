@@ -148,7 +148,15 @@
     <p class="sr-only" id="voters-status" role="status" aria-live="polite"></p>
     <div class="dialog-actions"><button type="button" id="voters-done" class="btn btn-primary btn-sm">Done</button></div>
   </dialog>
-  <dialog id="edit-dialog" class="paper dialog" aria-labelledby="edit-title" aria-describedby="edit-desc">
+  <dialog id="remove-dialog" class="paper dialog" aria-labelledby="remove-title" aria-describedby="remove-desc">
+    <h2 id="remove-title"></h2>
+    <p id="remove-desc"></p>
+    <div class="dialog-actions">
+      <button type="button" id="remove-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+      <button type="button" id="remove-confirm" class="btn btn-danger btn-sm">Remove</button>
+    </div>
+  </dialog>
+  <dialog id="edit-dialog"class="paper dialog" aria-labelledby="edit-title" aria-describedby="edit-desc">
     <h2 id="edit-title">Edit this poll?</h2>
     <p id="edit-desc">Voting pauses as soon as you continue, so nobody votes on a question that's about to change. It reopens when you save or cancel.</p>
     <div class="notice notice-warn">
