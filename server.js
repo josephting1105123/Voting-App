@@ -145,7 +145,13 @@ function createApp(store, limiter = createLimiter()) {
     }
     const body = isPlainObject(req.body) ? req.body : {};
     const result = store.createPoll(
-      { title: body.title, options: body.options, multi: body.multi, anonymous: body.anonymous },
+      {
+        title: body.title,
+        options: body.options,
+        multi: body.multi,
+        maxChoices: body.maxChoices,
+        anonymous: body.anonymous,
+      },
       ip
     );
     if (!result.ok) return res.status(result.code === 'ip_limit' ? 429 : 400).json({ error: result.error });
@@ -354,6 +360,28 @@ function attachSockets(io, store, limiter) {
     );
 
     on(
+      'admin:setPaused',
+      adminCommand((token, data) => {
+        if (typeof data.paused !== 'boolean') return { ok: false, error: 'Invalid request' };
+        const result = store.setPaused(token, data.paused);
+        return result.ok ? { ...result, notify: { admin: true, allVoters: true } } : result;
+      })
+    );
+
+    on(
+      'admin:edit',
+      adminCommand((token, data) => {
+        const result = store.editPoll(token, {
+          title: data.title,
+          options: data.options,
+          multi: data.multi,
+          maxChoices: data.maxChoices,
+        });
+        return result.ok ? { ...result, ack: { reset: result.reset }, notify: { admin: true, allVoters: true } } : result;
+      })
+    );
+
+    on(
       'admin:close',
       adminCommand((token) => {
         const result = store.closePoll(token);
@@ -385,7 +413,7 @@ function attachSockets(io, store, limiter) {
     on('voter:vote', (data, ack) => {
       const token = socket.data.voterToken;
       if (!token) return ack({ ok: false, error: 'Join the poll first' });
-      const result = store.vote(token, data.choices);
+      const result = store.vote(token, data.choices, data.revision);
       if (!result.ok) return ack({ ok: false, error: result.error });
       ack({ ok: true });
       // A vote changes the admin's counts and the voter's own screen; once results are live, every voter who
