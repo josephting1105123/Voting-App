@@ -167,6 +167,15 @@
     renderPending(s);
     renderVoters(s);
 
+    // Someone else removed the voter being asked about, or they left: nothing left to confirm.
+    if (removeDialog.open && removeTarget && removeTarget._voter) {
+      var askedId = removeTarget._voter.id;
+      var stillThere = s.approved.some(function (a) {
+        return a.id === askedId;
+      });
+      if (!stillThere) removeDialog.close();
+    }
+
     closeBtn.hidden = s.closed;
     editBtn.hidden = s.closed;
     $('pause-row').hidden = s.closed;
@@ -296,7 +305,7 @@
       li.appendChild(el('div', { class: 'item-actions' }, removeBtn));
       li._removeBtn = removeBtn;
       removeBtn.addEventListener('click', function () {
-        removeVoter(li);
+        askRemove(li);
       });
     } else {
       var sub = el('p', { class: 'item-sub muted small', hidden: true });
@@ -326,18 +335,47 @@
   // Where the removed row sat, so focus can land on its neighbour once the new state arrives.
   var pendingFocus = null;
 
-  function removeVoter(li) {
+  var removeDialog = $('remove-dialog');
+  // The row the host is being asked about while the confirm dialog is open.
+  var removeTarget = null;
+
+  function askRemove(li) {
     var v = li._voter;
     if (!v || removing.has(v.id)) return;
     var text;
     if (v.hasVoted && Array.isArray(v.choices)) {
-      text = 'Remove ' + v.name + ' from this poll? Their vote will come out of the results.';
+      text = 'Their vote will come out of the results.';
     } else if (v.hasVoted) {
-      text = 'Remove ' + v.name + " from this poll? This poll is anonymous, so their vote can't be traced and stays in the results.";
+      text = "This poll is anonymous, so their vote can't be traced and stays in the results.";
     } else {
-      text = 'Remove ' + v.name + ' from this poll?';
+      text = 'They will leave the poll and their name will be free to use again.';
     }
-    if (!window.confirm(text)) return;
+    $('remove-title').textContent = 'Remove ' + v.name + '?';
+    $('remove-desc').textContent = text;
+    removeTarget = li;
+    if (!removeDialog.open) removeDialog.showModal();
+    $('remove-cancel').focus();
+  }
+
+  $('remove-cancel').addEventListener('click', function () {
+    removeDialog.close();
+  });
+
+  $('remove-confirm').addEventListener('click', function () {
+    var target = removeTarget;
+    removeDialog.close();
+    if (target && target.isConnected && target._voter) doRemove(target);
+  });
+
+  removeDialog.addEventListener('close', function () {
+    removeTarget = null;
+  });
+
+  wireDialog(removeDialog);
+
+  function doRemove(li) {
+    var v = li._voter;
+    if (!v || removing.has(v.id)) return;
     var list = li.parentNode;
     removing.add(v.id);
     pendingFocus = { id: v.id, listId: list.id, index: Array.prototype.indexOf.call(list.children, li) };
