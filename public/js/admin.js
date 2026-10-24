@@ -38,6 +38,7 @@
   var state = null;
   var dead = false; // auth said "not found": stop reacting to anything
   var liveBusy = false;
+  var pauseBusy = false;
   var resultsShown = false; // results stay hidden until the host reveals them, so the screen can be projected
 
   var errorBox = $('admin-error');
@@ -45,6 +46,10 @@
   var votersList = $('voters-list');
   var closeBtn = $('close-btn');
   var liveSwitch = $('live-switch');
+  var pauseSwitch = $('pause-switch');
+  var editBtn = $('edit-btn');
+  var editDialog = $('edit-dialog');
+  var closeDialog = $('close-dialog');
   var approveAllBtn = $('approve-all');
   var PENDING_VISIBLE = 3; // rows shown in the card; the rest live in the dialog
   var pendingMoreBtn = $('pending-more');
@@ -99,10 +104,12 @@
   });
 
   function remember(s) {
-    var known = QV.loadAdminPolls().some(function (p) {
+    var known = QV.loadAdminPolls().filter(function (p) {
       return p.adminToken === token;
-    });
+    })[0];
     if (!known) QV.saveAdminPoll({ pin: s.pin, title: s.title, adminToken: token, createdAt: Date.now() });
+    // A renamed poll keeps its original createdAt (saveAdminPoll moves the entry to the front of the list).
+    else if (known.title !== s.title) QV.saveAdminPoll({ pin: known.pin, title: s.title, adminToken: token, createdAt: known.createdAt });
   }
 
   /* ---- rendering ---- */
@@ -118,7 +125,12 @@
 
     $('poll-title').textContent = s.title;
     $('closed-badge').hidden = !s.closed;
-    $('mode-badge').textContent = s.multi ? 'Multiple choice' : 'Single choice';
+    $('paused-badge').hidden = !(s.paused && !s.closed);
+    var modeText = 'Single choice';
+    if (s.multi) {
+      modeText = s.maxChoices && s.maxChoices < s.options.length ? 'Pick up to ' + s.maxChoices : 'Multiple choice';
+    }
+    $('mode-badge').textContent = modeText;
     $('anon-badge').textContent = s.anonymous ? 'Anonymous' : 'Names visible to you';
 
     var pinEl = $('pin');
@@ -134,6 +146,7 @@
     if ($('share-link').value !== link) $('share-link').value = link;
 
     liveSwitch.setAttribute('aria-checked', s.live ? 'true' : 'false');
+    pauseSwitch.setAttribute('aria-checked', s.paused ? 'true' : 'false');
 
     $('total').textContent = pluralVotes(s.totalVoted) + ' so far';
     QV.renderResults($('results'), s.options, { options: s.options, totalVoted: s.totalVoted });
@@ -147,7 +160,13 @@
     renderVoters(s);
 
     closeBtn.hidden = s.closed;
+    editBtn.hidden = s.closed;
+    $('pause-row').hidden = s.closed;
     $('closed-note').hidden = !s.closed;
+    if (s.closed) {
+      if (editDialog.open) editDialog.close();
+      if (closeDialog.open) closeDialog.close();
+    }
   }
 
   function renderPending(s) {
@@ -280,14 +299,93 @@
     });
   });
 
-  closeBtn.addEventListener('click', function () {
-    if (!window.confirm('Close this poll? No one will be able to join or vote after this.')) return;
-    closeBtn.disabled = true;
-    QV.emitAck(socket, 'admin:close', {}).then(function (res) {
-      closeBtn.disabled = false;
-      setError(res.ok ? '' : res.error || 'Could not close the poll.');
+  $('pause-row').addEventListener('click', function () {
+    if (!state || pauseBusy) return;
+    pauseBusy = true;
+    var pausing = !state.paused;
+    QV.emitAck(socket, 'admin:setPaused', { paused: pausing }).then(function (res) {
+      pauseBusy = false;
+      setError(res.ok ? '' : res.error || (pausing ? 'Could not pause voting.' : 'Could not resume voting.'));
     });
   });
+
+  // Clicking the dimmed backdrop (the dialog element itself, outside its box) closes it.
+  function wireDialog(dialog) {
+    dialog.addEventListener('click', function (e) {
+      if (e.target !== dialog) return;
+      var r = dialog.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+        dialog.close();
+      }
+    });
+  }
+
+  var editConfirm = $('edit-confirm');
+
+  function resetEditConfirm() {
+    editConfirm.disabled = false;
+    editConfirm.textContent = 'Pause and edit';
+  }
+
+  var editError = $('edit-error');
+  var closeError = $('close-error');
+
+  editBtn.addEventListener('click', function () {
+    resetEditConfirm();
+    editError.hidden = true;
+    editDialog.showModal();
+    $('edit-cancel').focus();
+  });
+
+  $('edit-cancel').addEventListener('click', function () {
+    editDialog.close();
+  });
+
+  editConfirm.addEventListener('click', function () {
+    editConfirm.disabled = true;
+    editConfirm.textContent = 'Pausing…';
+    editError.hidden = true;
+    QV.emitAck(socket, 'admin:setPaused', { paused: true }).then(function (res) {
+      if (res.ok) {
+        location.href = '/create.html#edit=' + token;
+      } else {
+        editError.textContent = res.error || 'Could not pause voting.';
+        editError.hidden = false;
+        resetEditConfirm();
+      }
+    });
+  });
+
+  var closeConfirm = $('close-confirm');
+
+  closeBtn.addEventListener('click', function () {
+    closeConfirm.disabled = false;
+    closeError.hidden = true;
+    closeDialog.showModal();
+    $('close-cancel').focus();
+  });
+
+  $('close-cancel').addEventListener('click', function () {
+    closeDialog.close();
+  });
+
+  closeConfirm.addEventListener('click', function () {
+    closeConfirm.disabled = true;
+    closeError.hidden = true;
+    QV.emitAck(socket, 'admin:close', {}).then(function (res) {
+      closeConfirm.disabled = false;
+      if (res.ok) {
+        closeDialog.close();
+        setError('');
+      } else {
+        closeError.textContent = res.error || 'Could not close the poll.';
+        closeError.hidden = false;
+      }
+    });
+  });
+
+  wireDialog(editDialog);
+  wireDialog(closeDialog);
 
   function approveAll(btn) {
     btn.disabled = true;
@@ -310,13 +408,7 @@
   $('pending-dialog-close').addEventListener('click', function () {
     pendingDialog.close();
   });
-  // Clicks on the dialog's own padding also target the dialog, so only close when the click lands outside its box.
-  pendingDialog.addEventListener('click', function (e) {
-    if (e.target !== pendingDialog) return;
-    var r = pendingDialog.getBoundingClientRect();
-    var inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    if (!inside) pendingDialog.close();
-  });
+  wireDialog(pendingDialog);
 
   function wireCopy(button, getText, source) {
     button.addEventListener('click', function () {
@@ -412,13 +504,7 @@
     cohostDialog.close();
   });
 
-  cohostDialog.addEventListener('click', function (e) {
-    if (e.target !== cohostDialog) return;
-    var r = cohostDialog.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
-      cohostDialog.close();
-    }
-  });
+  wireDialog(cohostDialog);
 
   cohostLink.addEventListener('copy', function (e) {
     if (cohostReveal.getAttribute('aria-pressed') === 'true') return;
