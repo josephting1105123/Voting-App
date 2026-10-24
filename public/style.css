@@ -1283,6 +1283,7 @@ textarea::placeholder {
 }
 
 #pending-head,
+#pending-dialog-head,
 #results-head {
   min-height: 0;
   border-top: 0;
@@ -1291,8 +1292,67 @@ textarea::placeholder {
 }
 
 #pending-head h2,
+#pending-dialog-head h2,
 #results-head h2 {
   margin: 0;
+}
+
+/* pending rows: avatar + name + Approve + Reject on one line */
+.pending-rows .list-item {
+  flex-wrap: nowrap;
+}
+
+.pending-rows .item-main {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+}
+
+.pending-rows .item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-rows .item-actions {
+  flex: none;
+}
+
+@media (max-width: 420px) {
+  .pending-rows .item-actions .btn-sm {
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+
+  .pending-rows .avatar {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+#pending-more {
+  margin-top: 12px;
+}
+
+.pending-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-paper);
+  background: var(--paper);
+  box-shadow: var(--paper-drop);
+  animation: none;
+}
+
+.pending-dialog::backdrop {
+  background: rgba(20, 16, 24, 0.45);
+}
+
+#pending-dialog-approve-all {
+  margin-top: 12px;
 }
 
 /* ---- admin ---- */
@@ -1364,7 +1424,8 @@ textarea::placeholder {
       'pin live'
       'pin close'
       'results results'
-      'pending voters';
+      'pending pending'
+      'voters voters';
   }
 
   .bento > .card {
