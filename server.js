@@ -355,8 +355,8 @@ function attachSockets(io, store, limiter) {
       adminCommand((token, data) => {
         if (typeof data.voterId !== 'string') return { ok: false, error: 'Invalid request' };
         const result = store.removeVoter(token, data.voterId);
-        // The removed voter is told; if their vote came out of the tallies, voters who can see results update too.
-        return result.ok ? { ...result, notify: { admin: true, voters: [result.voter], votedVoters: result.voter.hasVoted && !result.keptVote } } : result;
+        // The removed voter is told; if they had voted, voters who can see results update too.
+        return result.ok ? { ...result, notify: { admin: true, voters: [result.voter], votedVoters: result.voter.hasVoted } } : result;
       })
     );
 

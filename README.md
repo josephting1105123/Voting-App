@@ -35,7 +35,7 @@ npm test
 
 **The admin link is the only credential.** `/admin.html#<token>` is the whole login. Anyone with the link is the admin.
 
-**Anonymous polls.** The server never stores who picked what. The admin still sees which voters have submitted and the running totals, so in a very small poll, watching the screen as each vote lands can reveal a choice.
+**Anonymous polls.** Nobody using the app can see who picked what, the admin included. The server holds each voter's picks in memory so it can take them back out if that voter is removed, so whoever runs the server could read them. The admin still sees which voters have submitted and the running totals, so in a very small poll, watching the screen as each vote lands can reveal a choice. Removing someone who has voted can too, because the admin sees which totals drop.
 
 ## Rate limits
 

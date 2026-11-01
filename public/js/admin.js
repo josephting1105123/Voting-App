@@ -343,10 +343,8 @@
     var v = li._voter;
     if (!v || removing.has(v.id)) return;
     var text;
-    if (v.hasVoted && Array.isArray(v.choices)) {
+    if (v.hasVoted) {
       text = 'Their vote will come out of the results.';
-    } else if (v.hasVoted) {
-      text = "This poll is anonymous, so their vote can't be traced and stays in the results.";
     } else {
       text = 'They will leave the poll and their name will be free to use again.';
     }

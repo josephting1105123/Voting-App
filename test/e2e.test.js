@@ -819,3 +819,41 @@ test('admin:remove takes an approved voter out and tells them', async () => {
     await app.close();
   }
 });
+
+test('admin:remove in an anonymous poll takes the vote out of the results', async () => {
+  const app = await start(0);
+  const sockets = [];
+  try {
+    const { pin, adminToken } = (
+      await postJson(`${app.url}/api/polls`, { title: 'Room', options: ['a', 'b'], anonymous: true })
+    ).body;
+    const admin = await open(app.url);
+    sockets.push(admin);
+    const adminState = track(admin, 'admin:state');
+    assert.equal((await ask(admin, 'admin:auth', { token: adminToken })).ok, true);
+
+    const s = await open(app.url);
+    sockets.push(s);
+    const state = track(s, 'voter:state');
+    assert.equal((await ask(s, 'voter:join', { pin, name: 'Guest' })).ok, true);
+    const pending = await adminState.waitFor((a) => a.pending.length === 1);
+    const voterId = pending.pending[0].id;
+    assert.equal((await ask(admin, 'admin:decide', { voterId, approve: true })).ok, true);
+    const approved = await state.waitFor((v) => v.status === 'approved');
+    await adminState.waitFor((a) => a.approved.length === 1);
+
+    assert.equal((await ask(s, 'voter:vote', { choices: [0], revision: approved.revision })).ok, true);
+    const voted = await adminState.waitFor((a) => a.approved.length === 1 && a.approved[0].hasVoted);
+    assert.equal('choices' in voted.approved[0], false);
+    assert.equal(voted.options[0].count, 1);
+    assert.equal(voted.totalVoted, 1);
+
+    assert.equal((await ask(admin, 'admin:remove', { voterId })).ok, true);
+    const after = await adminState.waitFor((a) => a.approved.length === 0);
+    assert.equal(after.options[0].count, 0);
+    assert.equal(after.totalVoted, 0);
+  } finally {
+    for (const k of sockets) k.close();
+    await app.close();
+  }
+});

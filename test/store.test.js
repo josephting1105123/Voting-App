@@ -247,7 +247,7 @@ test('voting and joining are rejected after the poll is closed', () => {
   assert.equal(store.adminView(poll.poll).closed, true);
 });
 
-test('anonymous poll: no per-voter choices are stored or exposed', () => {
+test('anonymous poll: per-voter choices are never exposed', () => {
   const { store } = setup();
   const poll = newPoll(store, { anonymous: true });
   const v = addVoter(store, poll, 'Alice');
@@ -261,9 +261,14 @@ test('anonymous poll: no per-voter choices are stored or exposed', () => {
   assert.equal(view.totalVoted, 1);
 
   const stored = store.getVoterByToken(v.voterToken).voter;
-  assert.equal(stored.choices, null);
   assert.equal(stored.hasVoted, true);
   assert.equal(store.voterView(poll.poll, stored).myChoices, null);
+
+  // Even with results live, neither view carries who picked what.
+  store.setLive(poll.adminToken, true);
+  const liveVoterView = store.voterView(poll.poll, stored);
+  assert.equal(liveVoterView.myChoices, null);
+  assert.equal('choices' in store.adminView(poll.poll).approved[0], false);
 });
 
 test('non-anonymous poll: admin sees each voter\'s choices, voter sees their own', () => {
@@ -905,7 +910,6 @@ test('removeVoter: approved voter who has not voted', () => {
 
   const r = store.removeVoter(poll.adminToken, alice.voterId);
   assert.equal(r.ok, true);
-  assert.equal(r.keptVote, false);
   assert.equal(r.voter.status, 'removed');
   assert.equal(poll.poll.activeCount, 1);
   assert.equal(store.getVoterByToken(alice.voterToken), null);
@@ -926,7 +930,6 @@ test('removeVoter takes a recorded vote out of the tallies', () => {
 
   const r = store.removeVoter(poll.adminToken, alice.voterId);
   assert.equal(r.ok, true);
-  assert.equal(r.keptVote, false);
   const view = store.adminView(poll.poll);
   assert.deepEqual(view.options.map((o) => o.count), [1, 0, 0]);
   assert.equal(view.totalVoted, 1);
@@ -934,18 +937,21 @@ test('removeVoter takes a recorded vote out of the tallies', () => {
   assert.equal(store.voterView(poll.poll, r.voter).results, null);
 });
 
-test('removeVoter in an anonymous poll keeps the vote counted', () => {
+test('removeVoter in an anonymous poll takes the vote out of the tallies', () => {
   const { store } = setup();
-  const poll = newPoll(store, { anonymous: true });
+  const poll = newPoll(store, { anonymous: true, multi: true });
   const alice = addVoter(store, poll, 'Alice');
-  assert.equal(store.vote(alice.voterToken, [1]).ok, true);
+  const bob = addVoter(store, poll, 'Bob');
+  assert.equal(store.vote(alice.voterToken, [0, 2]).ok, true);
+  assert.equal(store.vote(bob.voterToken, [0]).ok, true);
 
   const r = store.removeVoter(poll.adminToken, alice.voterId);
   assert.equal(r.ok, true);
-  assert.equal(r.keptVote, true);
   const view = store.adminView(poll.poll);
-  assert.deepEqual(view.options.map((o) => o.count), [0, 1, 0]);
+  assert.deepEqual(view.options.map((o) => o.count), [1, 0, 0]);
   assert.equal(view.totalVoted, 1);
+  assert.equal(view.approved.length, 1);
+  assert.equal('choices' in view.approved[0], false);
 });
 
 test('removeVoter refuses pending voters, unknown ids and wrong tokens', () => {
