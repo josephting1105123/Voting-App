@@ -283,9 +283,8 @@ function createStore(options = {}) {
     return { ok: true, poll, voter };
   }
 
-  // Removes an approved voter (pending voters are rejected instead). Frees their slot and name. If they voted
-  // and the poll keeps choices, their picks come out of the tallies; an anonymous poll never knew their picks,
-  // so the vote stays counted (keptVote: true). Returns the voter (status 'removed') so the caller can tell them.
+  // Removes an approved voter (pending voters are rejected instead). Frees their slot and name, and takes any
+  // vote they cast out of the tallies. Returns the voter (status 'removed') so the caller can tell them.
   function removeVoter(adminToken, voterId) {
     const poll = getByAdminToken(adminToken);
     if (!poll) return fail('Poll not found');
@@ -293,14 +292,9 @@ function createStore(options = {}) {
     if (!voter) return fail('Voter not found');
     if (voter.status !== 'approved') return fail('Only approved voters can be removed');
 
-    let keptVote = false;
     if (voter.hasVoted) {
-      if (Array.isArray(voter.choices)) {
-        for (const id of voter.choices) poll.options[id].count -= 1;
-        poll.totalVoted -= 1;
-      } else {
-        keptVote = true;
-      }
+      for (const id of voter.choices) poll.options[id].count -= 1;
+      poll.totalVoted -= 1;
     }
     voter.status = 'removed';
     poll.activeCount -= 1;
@@ -308,7 +302,7 @@ function createStore(options = {}) {
     poll.voters.delete(voter.id);
     byVoterToken.delete(voter.token);
     totalVoters -= 1;
-    return { ok: true, poll, voter, keptVote };
+    return { ok: true, poll, voter };
   }
 
   // Approves everyone currently pending. They already count toward the active cap, so this only flips status.
@@ -410,8 +404,8 @@ function createStore(options = {}) {
     for (const c of picked) poll.options[c].count += 1;
     voter.hasVoted = true;
     poll.totalVoted += 1;
-    // Anonymous polls never store who picked what; only tallies and hasVoted exist.
-    voter.choices = poll.anonymous ? null : [...picked].sort((a, b) => a - b);
+    // Anonymous polls keep the picks too, only so removeVoter can undo them; adminView and voterView never expose them.
+    voter.choices = [...picked].sort((a, b) => a - b);
     return { ok: true, poll, voter };
   }
 
