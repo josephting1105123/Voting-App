@@ -1,3 +1,14 @@
 node_modules/
 .env
 *.log
+
+# Android (Capacitor shell): machine paths, build output and key material stay local
+android/local.properties
+android/.gradle/
+android/.idea/
+android/**/build/
+android/captures/
+*.jks
+*.keystore
+keystore.properties
+google-services.json
