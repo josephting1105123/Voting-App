@@ -1,21 +1,42 @@
+<div align="center">
+
 # Quick Vote
 
-A small real-time voting app. Someone creates a poll and gets a 6-digit PIN plus a private admin link. Voters join with the PIN and a name, the admin lets them in, and everyone votes from their phone. The admin sees results update live and decides whether voters see them too.
+**Real-time polls joined with a 6-digit PIN.**<br>
+Create a poll, share the PIN, admit voters, and watch the results come in live.
 
-Node, Express and Socket.IO on the server, plain HTML/CSS/JS on the front end (no build step). All state lives in memory. The page is an installable PWA.
+[![Try it](https://img.shields.io/badge/Try_it-entropicsoftwarelabs.com-22C55E?style=for-the-badge)](https://entropicsoftwarelabs.com/quick-vote/)
 
-## Run it
+![Node 24](https://img.shields.io/badge/Node-24-339933?style=flat-square&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=flat-square&logo=socketdotio&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?style=flat-square&logo=pwa&logoColor=white)
+[![License](https://img.shields.io/github/license/josephting1105123/Voting-App?style=flat-square)](LICENSE)
 
-```
+<br>
+
+<img src=".github/assets/qv-join-paper.webp" alt="Joining a poll with a PIN" width="31%">&nbsp;
+<img src=".github/assets/qv-ballot-paper.webp" alt="Voting on a ballot" width="31%">&nbsp;
+<img src=".github/assets/qv-results-paper.webp" alt="Live results" width="31%">
+
+</div>
+
+Someone creates a poll and gets a 6-digit PIN plus a private admin link. Voters join with the PIN and a name, the admin lets them in, and everyone votes from their phone. The admin sees results update live and decides whether voters see them too.
+
+The server is Node, Express and Socket.IO. The front end is plain HTML, CSS and JS with no build step. All state lives in memory, and the page installs as a PWA.
+
+## Quick start
+
+```bash
 npm install
 npm start
 ```
 
 Open http://localhost:3000. Set `PORT` to use a different port. Needs Node 24.
 
-## Test
+## Tests
 
-```
+```bash
 npm test
 ```
 
@@ -23,40 +44,41 @@ npm test
 
 ## Deploy to Render
 
-1. Push this repo to GitHub/GitLab.
+1. Push this repo to GitHub or GitLab.
 2. In Render, create a new Blueprint (or Web Service) from the repo. `render.yaml` is picked up automatically: free plan, `npm ci`, `npm start`, health check on `/healthz`.
-3. After the first deploy, open the service logs and find the line `[ip] xff=... chosen=...` (printed once, on the first request). `chosen` should be your own public IP. If it is a Render or CDN address instead, raise `TRUST_PROXY_HOPS` (see below) until it matches.
+3. After the first deploy, open the service logs and find the line `[ip] xff=... chosen=...` (printed once, on the first request). `chosen` should be your own public IP. If it's a Render or CDN address instead, raise `TRUST_PROXY_HOPS` ([see below](#trust_proxy_hops)) until it matches.
 
 ## Limits to know about
 
-**Data is in memory only.** A restart wipes every poll. Polls also expire 24 hours after creation, and the server holds at most 2000 polls and 50,000 voters at a time.
+> [!WARNING]
+> **Data is in memory only.** A restart wipes every poll. Polls also expire 24 hours after creation, and the server holds at most 2,000 polls and 50,000 voters at a time.
 
-**The free tier sleeps.** Render's free web service spins down after about 15 minutes with no traffic, and a spin-down is a restart, so every poll is lost. An open admin or voter page pings `/healthz` every 4 minutes to keep the server awake. That means: keep the admin page open while people vote, and expect polls to disappear if nobody has a poll page open for 15 minutes. Cold starts after a sleep take around a minute.
+**The free tier sleeps.** Render's free web service spins down after about 15 minutes with no traffic, and a spin-down is a restart, so every poll is lost. An open admin or voter page pings `/healthz` every 4 minutes to keep the server awake. In practice: keep the admin page open while people vote, and expect polls to disappear if nobody has a poll page open for 15 minutes. Cold starts after a sleep take around a minute.
 
 **The admin link is the only credential.** `/admin.html#<token>` is the whole login. Anyone with the link is the admin.
 
-**Anonymous polls.** Nobody using the app can see who picked what, the admin included. The server holds each voter's picks in memory so it can take them back out if that voter is removed, so whoever runs the server could read them. The admin still sees which voters have submitted and the running totals, so in a very small poll, watching the screen as each vote lands can reveal a choice. Removing someone who has voted can too, because the admin sees which totals drop.
+**Polls are anonymous, with caveats.** Nobody using the app can see who picked what, the admin included. The server holds each voter's picks in memory so it can take them back out if that voter is removed, so whoever runs the server could read them. The admin still sees which voters have submitted and the running totals, so in a very small poll, watching the screen as each vote lands can reveal a choice. Removing someone who has voted can too, because the admin sees which totals drop.
 
 ## Rate limits
 
-Limits are per client IP, and sized so a classroom or office sharing one address can use the app together. They are named constants at the top of `server.js`.
+Limits are per client IP, sized so a classroom or office sharing one address can use the app together. They're named constants at the top of `server.js`.
 
 | What | Limit |
 | --- | --- |
 | Polls created | 10 per 10 minutes, 30 live polls at once |
 | Joins (`voter:join`) | 300 per minute; a failed join counts double |
-| Concurrent Socket.IO connections | 1000 |
+| Concurrent Socket.IO connections | 1,000 |
 | Events on one voter socket | 30 per 10 seconds, then the socket is dropped |
-| Events on an admin socket | 1000 per 10 seconds. Past that, actions are refused with "Too many actions — slow down a moment" and the connection stays up |
+| Events on an admin socket | 1,000 per 10 seconds. Past that, actions are refused with "Too many actions — slow down a moment" and the connection stays up |
 
-Per poll: 500 voters, counting people waiting for approval and approved voters together. Rejected voters are deleted and free their slot. There is no separate limit on how many can be waiting.
+Per poll: 500 voters, counting people waiting for approval and approved voters together. Rejected voters are deleted and free their slot. There's no separate limit on how many can be waiting.
 
 ### `TRUST_PROXY_HOPS`
 
 The client IP comes from `X-Forwarded-For`, taking the entry that many hops from the **right** (the end the proxy writes to, which a client can't forge). The default is `1`: one proxy in front.
 
 - **Render: set `TRUST_PROXY_HOPS=3`.** Render's header arrives as `client, cloudflare-edge, render-load-balancer` (checked 2026-10-17). With the default of 1, every user is counted as Render's load balancer and they all share one rate-limit bucket. `render.yaml` sets it; a service created by hand in the dashboard needs it added under Environment.
-- Behind one proxy: leave it unset.
-- Running with no proxy at all (local, or a bare VM): set `TRUST_PROXY_HOPS=0`. Otherwise a client can send its own `X-Forwarded-For` and pick which IP it is counted as.
+- **Behind one proxy:** leave it unset.
+- **No proxy at all** (local, or a bare VM): set `TRUST_PROXY_HOPS=0`. Otherwise a client can send its own `X-Forwarded-For` and pick which IP it's counted as.
 
 If the header is missing or has fewer entries than the hop count, the connection's own address is used. Check the `[ip]` log line after deploying to confirm the setting.
